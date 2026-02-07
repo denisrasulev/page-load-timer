@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Page Load Timer",
+  "version": "1.0",
+  "description": "Measure page load performance",
+  "permissions": ["activeTab", "storage", "tabs", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "page-speed.png"
+  },
+  "icons": {
+    "16": "page-speed.png",
+    "48": "page-speed.png",
+    "128": "page-speed.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content.js"],
+    "run_at": "document_start"
+  }]
+}
