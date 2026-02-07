@@ -1,0 +1,35 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Build/output
+build/
+dist/
+out/
+coverage/
+
+# Chrome extension packaging/signing
+*.crx
+*.pem
+*.zip
+
+# Environment files
+.env
+.env.*
+!.env.example
