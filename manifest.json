@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Page Load Timer",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Measure page load performance",
-  "permissions": ["activeTab", "storage", "tabs", "scripting"],
+  "permissions": ["activeTab", "storage", "scripting", "tabs"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "page-speed.png"

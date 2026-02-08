@@ -1,3 +1,20 @@
+// --- Constants ---
+const SLOW_RESOURCE_THRESHOLD_MS = 500;
+const RESOURCE_NAME_MAX_LENGTH = 35;
+const TOP_RESOURCES_COUNT = 10;
+
+const BADGE_CLASS_ALLOWLIST = new Set(['js', 'css', 'img', 'xhr', 'font', 'other']);
+const TYPE_TO_BADGE = {
+  scripts:     { cls: 'js',    text: 'JS' },
+  stylesheets: { cls: 'css',   text: 'CSS' },
+  images:      { cls: 'img',   text: 'IMG' },
+  xhr:         { cls: 'xhr',   text: 'XHR' },
+  fonts:       { cls: 'font',  text: 'FONT' },
+  other:       { cls: 'other', text: 'OTHER' }
+};
+
+// --- Helpers ---
+
 function escapeHTML(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -7,15 +24,137 @@ function escapeHTML(str) {
     .replace(/'/g, '&#039;');
 }
 
-function showEmptyState() {
-  document.getElementById('load-time').textContent = '--';
-  document.getElementById('dom-time').textContent = '--';
-  document.getElementById('ttfb-time').textContent = '--';
-  document.getElementById('timeline-body').innerHTML = '';
-  document.getElementById('resources-body').innerHTML = '';
+function formatMs(value) {
+  if (typeof value !== 'number' || isNaN(value)) return '--';
+  return Math.round(value) + 'ms';
 }
 
+function cleanResourceName(url) {
+  if (!url || typeof url !== 'string') return 'unknown';
+  try {
+    const parsed = new URL(url);
+    const filename = parsed.pathname.split('/').pop();
+    if (filename) return filename;
+    // No filename (e.g. https://example.com/ or /api/data/) — show host + path
+    const path = parsed.pathname.replace(/\/+$/, '');
+    return parsed.hostname + (path || '/');
+  } catch {
+    // Fallback for non-standard URLs (data:, etc.)
+    const name = url.split('/').pop() || url;
+    return name.split('?')[0].split('#')[0] || name;
+  }
+}
+
+// --- Empty state ---
+
+function showEmptyState() {
+  document.getElementById('load-time').textContent = '--';
+  document.getElementById('fcp-time').textContent = '--';
+  document.getElementById('lcp-time').textContent = '--';
+  document.getElementById('timeline-body').textContent = '';
+  document.getElementById('resources-body').textContent = '';
+}
+
+// --- Settings defaults ---
+const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
+const DEFAULT_SETTINGS = { showBadge: true, density: 'default', showTimeline: true, showResources: true };
+
+// --- Init ---
+
 document.addEventListener('DOMContentLoaded', () => {
+  const mainView = document.getElementById('main-view');
+  const settingsView = document.getElementById('settings-view');
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsBack = document.getElementById('settings-back');
+  const badgeToggle = document.getElementById('badge-toggle');
+  const densitySelect = document.getElementById('density-select');
+  const timelineToggle = document.getElementById('timeline-toggle');
+  const resourcesToggle = document.getElementById('resources-toggle');
+  const timelineSection = document.getElementById('timeline-section');
+  const resourcesSection = document.getElementById('resources-section');
+
+  function applyDensity(density) {
+    document.body.classList.remove('density-roomy', 'density-default', 'density-compact');
+    if (DENSITY_OPTIONS.includes(density)) {
+      document.body.classList.add('density-' + density);
+    } else {
+      document.body.classList.add('density-default');
+    }
+  }
+
+  // Load settings and set toggle/radio state
+  chrome.storage.local.get(['settings'], (result) => {
+    const settings = result.settings || DEFAULT_SETTINGS;
+    badgeToggle.checked = settings.showBadge !== false;
+    const density = DENSITY_OPTIONS.includes(settings.density) ? settings.density : 'default';
+    densitySelect.value = density;
+    applyDensity(density);
+    timelineToggle.checked = settings.showTimeline !== false;
+    resourcesToggle.checked = settings.showResources !== false;
+    timelineSection.classList.toggle('section-hidden', settings.showTimeline === false);
+    resourcesSection.classList.toggle('section-hidden', settings.showResources === false);
+  });
+
+  // Settings view switching
+  settingsBtn.addEventListener('click', () => {
+    mainView.classList.add('view-hidden');
+    settingsView.classList.remove('view-hidden');
+  });
+
+  settingsBack.addEventListener('click', () => {
+    settingsView.classList.add('view-hidden');
+    mainView.classList.remove('view-hidden');
+  });
+
+  // Badge toggle handler
+  badgeToggle.addEventListener('change', () => {
+    const showBadge = badgeToggle.checked;
+    chrome.storage.local.get(['settings'], (result) => {
+      const settings = result.settings || DEFAULT_SETTINGS;
+      settings.showBadge = showBadge;
+      chrome.storage.local.set({ settings });
+    });
+
+    // Tell background to update/clear badge for current tab
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0]) {
+        chrome.runtime.sendMessage({
+          action: 'badgeSettingChanged',
+          tabId: tabs[0].id,
+          showBadge: showBadge
+        });
+      }
+    });
+  });
+
+  // Density selector handler
+  densitySelect.addEventListener('change', () => {
+    const density = densitySelect.value;
+    applyDensity(density);
+    chrome.storage.local.get(['settings'], (result) => {
+      const settings = result.settings || DEFAULT_SETTINGS;
+      settings.density = density;
+      chrome.storage.local.set({ settings });
+    });
+  });
+
+  // Section toggle helper
+  function sectionToggleHandler(toggle, section, settingKey) {
+    toggle.addEventListener('change', () => {
+      const show = toggle.checked;
+      section.classList.toggle('section-hidden', !show);
+      chrome.storage.local.get(['settings'], (result) => {
+        const settings = result.settings || DEFAULT_SETTINGS;
+        settings[settingKey] = show;
+        chrome.storage.local.set({ settings });
+      });
+    });
+  }
+
+  sectionToggleHandler(timelineToggle, timelineSection, 'showTimeline');
+  sectionToggleHandler(resourcesToggle, resourcesSection, 'showResources');
+
+  // Load perf data
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs || !tabs[0]) {
       showEmptyState();
@@ -43,19 +182,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// --- Render ---
+
 function renderData(data) {
   try {
     const navigation = data && data.navigation ? data.navigation : null;
+    const vitals = data && data.vitals ? data.vitals : null;
     const loadComplete = navigation && typeof navigation.loadComplete === 'number' ? navigation.loadComplete : null;
-    const domContentLoaded = navigation && typeof navigation.domContentLoaded === 'number' ? navigation.domContentLoaded : null;
-    const ttfb = navigation && typeof navigation.ttfb === 'number' ? navigation.ttfb : null;
+    const fcp = vitals && typeof vitals.fcp === 'number' ? vitals.fcp : null;
+    const lcp = vitals && typeof vitals.lcp === 'number' ? vitals.lcp : null;
 
     // Update metric cards
-    document.getElementById('load-time').textContent = loadComplete != null ? loadComplete + 'ms' : '--';
-    document.getElementById('dom-time').textContent = domContentLoaded != null ? domContentLoaded + 'ms' : '--';
-    document.getElementById('ttfb-time').textContent = ttfb != null ? ttfb + 'ms' : '--';
+    document.getElementById('load-time').textContent = formatMs(loadComplete);
+    document.getElementById('fcp-time').textContent = formatMs(fcp);
+    document.getElementById('lcp-time').textContent = formatMs(lcp);
 
     // Build timeline table
+    const timelineBody = document.getElementById('timeline-body');
     if (navigation && Array.isArray(navigation.timeline) && navigation.timeline.length > 0) {
       const timeline = navigation.timeline;
       let maxDuration = 0;
@@ -69,91 +212,94 @@ function renderData(data) {
         }
       });
 
-      let timelineHTML = '';
+      // Build rows via DOM API to avoid innerHTML with unescaped values
+      timelineBody.textContent = '';
       timeline.forEach((phase, i) => {
         const duration = phase.end - phase.start;
         const isSlowest = i === slowestIndex && maxDuration > 0;
-        timelineHTML += `
-          <tr${isSlowest ? ' class="timeline-slowest"' : ''}>
-            <td>${escapeHTML(phase.phase)}</td>
-            <td>${phase.start}ms</td>
-            <td>${phase.end}ms</td>
-            <td>${duration}ms</td>
-          </tr>
-        `;
+        const tr = document.createElement('tr');
+        if (isSlowest) tr.className = 'timeline-slowest';
+
+        const tdPhase = document.createElement('td');
+        tdPhase.textContent = phase.phase;
+
+        const tdStart = document.createElement('td');
+        tdStart.textContent = Math.round(phase.start) + 'ms';
+
+        const tdEnd = document.createElement('td');
+        tdEnd.textContent = Math.round(phase.end) + 'ms';
+
+        const tdDuration = document.createElement('td');
+        tdDuration.textContent = Math.round(duration) + 'ms';
+
+        tr.append(tdPhase, tdStart, tdEnd, tdDuration);
+        timelineBody.appendChild(tr);
       });
-      document.getElementById('timeline-body').innerHTML = timelineHTML;
     } else {
-      document.getElementById('timeline-body').innerHTML = '';
+      timelineBody.textContent = '';
     }
 
     // Build resources table
-    let tableHTML = '';
+    const resourcesBody = document.getElementById('resources-body');
+    resourcesBody.textContent = '';
 
     if (data && data.resources) {
       const allResources = [];
 
-      ['scripts', 'stylesheets', 'images', 'xhr', 'fonts', 'other'].forEach(type => {
+      Object.keys(TYPE_TO_BADGE).forEach(type => {
         if (data.resources[type] && data.resources[type].length > 0) {
+          const badge = TYPE_TO_BADGE[type];
           data.resources[type].forEach(resource => {
-            const badgeClass = type === 'scripts' ? 'js' :
-                              type === 'stylesheets' ? 'css' :
-                              type === 'images' ? 'img' :
-                              type === 'xhr' ? 'xhr' :
-                              type === 'fonts' ? 'font' : 'other';
-            const badgeText = type === 'scripts' ? 'JS' :
-                            type === 'stylesheets' ? 'CSS' :
-                            type === 'images' ? 'IMG' :
-                            type === 'xhr' ? 'XHR' :
-                            type === 'fonts' ? 'FONT' : 'OTHER';
-
             allResources.push({
               ...resource,
-              badgeClass: badgeClass,
-              badgeText: badgeText
+              badgeClass: badge.cls,
+              badgeText: badge.text
             });
           });
         }
       });
 
       allResources.sort((a, b) => b.duration - a.duration);
-      const topResources = allResources.slice(0, 10);
+      const topResources = allResources.slice(0, TOP_RESOURCES_COUNT);
 
-      if (topResources.length > 0) {
-        topResources.forEach(resource => {
-          const slowClass = resource.duration > 500 ? 'slow-time' : '';
-          const resourceName = typeof resource.name === 'string' ? resource.name : String(resource.name || 'unknown');
-          const displayName = resourceName.length > 35
-            ? resourceName.substring(0, 35) + '...'
-            : resourceName;
+      topResources.forEach(resource => {
+        const isSlow = resource.duration > SLOW_RESOURCE_THRESHOLD_MS;
+        const resourceName = typeof resource.name === 'string' ? resource.name : String(resource.name || 'unknown');
+        const displayName = resourceName.length > RESOURCE_NAME_MAX_LENGTH
+          ? resourceName.substring(0, RESOURCE_NAME_MAX_LENGTH) + '...'
+          : resourceName;
 
-          const safeName = escapeHTML(resourceName);
-          const safeDisplayName = escapeHTML(displayName);
-          const safeBadgeText = escapeHTML(resource.badgeText);
-          const safeBadgeClass = escapeHTML(resource.badgeClass);
+        // Validate badge class against allowlist
+        const badgeClass = BADGE_CLASS_ALLOWLIST.has(resource.badgeClass) ? resource.badgeClass : 'other';
 
-          tableHTML += `
-            <tr>
-              <td>
-                <div class="resource-row">
-                  <span class="badge ${safeBadgeClass}">${safeBadgeText}</span>
-                  <span class="resource-name" title="${safeName}">${safeDisplayName}</span>
-                </div>
-              </td>
-              <td class="resource-time ${slowClass}">${resource.duration}ms</td>
-            </tr>
-          `;
-        });
-      } else {
-        tableHTML = '';
-      }
-    } else {
-      tableHTML = '';
+        const tr = document.createElement('tr');
+
+        const tdResource = document.createElement('td');
+        const resourceRow = document.createElement('div');
+        resourceRow.className = 'resource-row';
+
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'badge ' + badgeClass;
+        badgeSpan.textContent = resource.badgeText;
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'resource-name';
+        nameSpan.title = resourceName;
+        nameSpan.textContent = displayName;
+
+        resourceRow.append(badgeSpan, nameSpan);
+        tdResource.appendChild(resourceRow);
+
+        const tdTime = document.createElement('td');
+        tdTime.className = 'resource-time' + (isSlow ? ' slow-time' : '');
+        tdTime.textContent = Math.round(resource.duration) + 'ms';
+
+        tr.append(tdResource, tdTime);
+        resourcesBody.appendChild(tr);
+      });
     }
-
-    document.getElementById('resources-body').innerHTML = tableHTML;
   } catch (error) {
     console.error('Error displaying performance data:', error);
-    document.getElementById('resources-body').innerHTML = '';
+    document.getElementById('resources-body').textContent = '';
   }
 }

@@ -44,18 +44,115 @@
             color: var(--text-primary);
         }
 
-        .status-dot {
-            height: 8px;
-            width: 8px;
-            background-color: var(--accent-green);
+        /* Settings button */
+        .settings-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 22px;
+            color: var(--text-secondary);
+            padding: 4px;
+            line-height: 1;
+            border-radius: 4px;
+            transition: color 0.15s;
+        }
+
+        .settings-btn:hover {
+            color: var(--text-primary);
+        }
+
+        /* View switching */
+        .view-hidden {
+            display: none;
+        }
+
+        /* Settings view */
+        .settings-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .settings-select {
+            font-size: 12px;
+            font-family: inherit;
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            color: var(--text-primary);
+            cursor: pointer;
+            outline: none;
+        }
+
+        .settings-select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #d1d5db;
+            border-radius: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .toggle-slider::before {
+            content: "";
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
             border-radius: 50%;
-            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background-color: var(--accent-blue);
+        }
+
+        .toggle input:checked + .toggle-slider::before {
+            transform: translateX(16px);
         }
 
         /* Metrics Grid */
         .metrics-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
             margin-bottom: 24px;
         }
@@ -96,13 +193,6 @@
             overflow: hidden;
         }
 
-        .section-header {
-            padding: 12px 16px;
-            background: #fff;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 13px;
-            font-weight: 600;
-        }
 
         table {
             width: 100%;
@@ -112,16 +202,17 @@
 
         th {
             text-align: left;
-            padding: 10px 16px;
-            background-color: #f9fafb;
+            padding: 7px 16px;
+            background-color: #eef0f3;
             color: var(--text-secondary);
-            font-weight: 500;
+            font-weight: 700;
             font-size: 11px;
             text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
         }
 
         td {
-            padding: 10px 16px;
+            padding: 6px 16px;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
         }
@@ -155,12 +246,15 @@
         /* Badges for types */
         .badge {
             display: inline-block;
-            padding: 2px 6px;
+            width: 42px;
+            padding: 2px 0;
             border-radius: 4px;
             font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
+            text-align: center;
             margin-right: 8px;
+            flex-shrink: 0;
         }
 
         .badge.js { background-color: #eff6ff; color: #3b82f6; }
@@ -188,8 +282,7 @@
             font-size: 12px;
         }
 
-        .timeline-table td:first-child,
-        .timeline-table th:first-child {
+        .timeline-table td:first-child {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             font-weight: 500;
         }
@@ -204,7 +297,7 @@
         }
 
         .timeline-slowest td {
-            background-color: #fef2f2;
+            background-color: #fde8e8;
             color: var(--danger);
             font-weight: 600;
         }
@@ -217,39 +310,117 @@
             margin-bottom: 16px;
         }
 
+        /* Density: roomy — scoped to main view only */
+        body.density-roomy #main-view {
+            padding: 4px;
+        }
+
+        body.density-roomy #main-view header {
+            margin-bottom: 24px;
+        }
+
+        body.density-roomy #main-view .metrics-grid {
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        body.density-roomy #main-view .metric-card {
+            padding: 14px;
+        }
+
+        body.density-roomy #main-view .metric-value {
+            font-size: 20px;
+        }
+
+        body.density-roomy #main-view th {
+            padding: 10px 16px;
+        }
+
+        body.density-roomy #main-view td {
+            padding: 10px 16px;
+        }
+
+        body.density-roomy #main-view .section-gap {
+            margin-bottom: 20px;
+        }
+
+        /* Density: default — base styles, no overrides needed */
+
+        /* Density: compact — scoped to main view only */
+        body.density-compact #main-view header {
+            margin-bottom: 12px;
+        }
+
+        body.density-compact #main-view .metrics-grid {
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        body.density-compact #main-view .metric-card {
+            padding: 6px;
+        }
+
+        body.density-compact #main-view .metric-label {
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+
+        body.density-compact #main-view .metric-value {
+            font-size: 15px;
+        }
+
+        body.density-compact #main-view th {
+            padding: 4px 12px;
+        }
+
+        body.density-compact #main-view td {
+            padding: 3px 12px;
+        }
+
+        body.density-compact #main-view .section-gap {
+            margin-bottom: 10px;
+        }
+
+        /* Section visibility */
+        .section-hidden {
+            display: none;
+        }
+
+
     </style>
 </head>
 <body>
 
     <div class="container">
+        <!-- Main View -->
+        <div id="main-view">
         <header>
             <h2>Page Performance</h2>
-            <span class="status-dot"></span>
+            <button id="settings-btn" class="settings-btn" title="Settings">&#9881;</button>
         </header>
 
         <!-- Top Metrics Cards -->
-        <div class="metrics-grid">
+        <div id="vitals-section" class="metrics-grid">
             <div class="metric-card">
                 <div class="metric-label">Page Load</div>
                 <div class="metric-value highlight" id="load-time">--</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">DOM Ready</div>
-                <div class="metric-value" id="dom-time">--</div>
+                <div class="metric-label">FCP</div>
+                <div class="metric-value" id="fcp-time">--</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">TTFB</div>
-                <div class="metric-value" id="ttfb-time">--</div>
+                <div class="metric-label">LCP</div>
+                <div class="metric-value" id="lcp-time">--</div>
             </div>
         </div>
 
         <!-- Load Timeline -->
-        <div class="table-container section-gap">
-            <div class="section-header">Load Timeline</div>
+        <div id="timeline-section" class="table-container section-gap">
             <table class="timeline-table" cellspacing="0">
                 <thead>
                     <tr>
-                        <th>Phase</th>
+                        <th>Load Timeline</th>
                         <th>Start</th>
                         <th>End</th>
                         <th>Time</th>
@@ -261,18 +432,58 @@
         </div>
 
         <!-- Resources Table -->
-        <div class="table-container">
-            <div class="section-header">Top Slow Resources</div>
+        <div id="resources-section" class="table-container">
             <table cellspacing="0">
                 <thead>
                     <tr>
-                        <th>Resource</th>
+                        <th>Top Slow Resources</th>
                         <th style="text-align: right;">Time</th>
                     </tr>
                 </thead>
                 <tbody id="resources-body">
                 </tbody>
             </table>
+        </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settings-view" class="view-hidden">
+        <header>
+            <button id="settings-back" class="settings-btn" title="Back">&#8249;</button>
+            <h2>Settings</h2>
+        </header>
+
+        <ul class="settings-list">
+            <li class="settings-item">
+                <div class="settings-label">Show load time on extension icon</div>
+                <label class="toggle">
+                    <input type="checkbox" id="badge-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </li>
+            <li class="settings-item">
+                <div class="settings-label">Choose information density</div>
+                <select id="density-select" class="settings-select">
+                    <option value="roomy">Roomy</option>
+                    <option value="default" selected>Default</option>
+                    <option value="compact">Compact</option>
+                </select>
+            </li>
+            <li class="settings-item">
+                <div class="settings-label">Show page load phases</div>
+                <label class="toggle">
+                    <input type="checkbox" id="timeline-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </li>
+            <li class="settings-item">
+                <div class="settings-label">Show top slow resources</div>
+                <label class="toggle">
+                    <input type="checkbox" id="resources-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </li>
+        </ul>
         </div>
     </div>
 
