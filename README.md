@@ -13,6 +13,7 @@ A lightweight Chrome extension that measures page load performance for the activ
 
 ## Settings (v1.1)
 - Toggle badge text on the extension icon
+- Choose theme: `auto`, `light`, or `dark`
 - Choose information density: `roomy`, `default`, or `compact`
 - Show/hide the load timeline section
 - Show/hide the slow resources section
@@ -34,6 +35,8 @@ If data is not visible yet, reload once and open the popup again.
 
 ## Project files
 - `manifest.json`: extension config (MV3), current version `1.1`
+- `shared.js`: shared resource formatting/grouping helpers used across scripts
 - `content.js`: collects navigation timing, resources, and web vitals from the page
-- `background.js`: stores per-tab data, handles on-demand collection, and updates badge state
+- `collect.js`: on-demand page metrics collector injected by the background script
+- `background.js`: stores per-tab data, triggers on-demand collection, and updates badge state
 - `popup.html` + `popup.js`: popup UI, settings view, and safe rendering of timeline/resources
