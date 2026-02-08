@@ -1,4 +1,8 @@
 (function() {
+  // --- Constants ---
+  const MAX_RETRIES = 20;
+  const RETRY_INTERVAL_MS = 50;
+
   // Module-scoped vitals accumulator — observers populate this asynchronously
   const vitals = {};
 
@@ -26,20 +30,35 @@
 
   window.addEventListener('load', () => {
     let retries = 0;
-    const maxRetries = 20;
 
     function collectWhenReady() {
       const [nav] = performance.getEntriesByType('navigation');
       if (nav && nav.loadEventEnd > 0) {
         collectPerfData(nav);
-      } else if (retries < maxRetries) {
+      } else if (retries < MAX_RETRIES) {
         retries++;
-        setTimeout(collectWhenReady, 50);
+        setTimeout(collectWhenReady, RETRY_INTERVAL_MS);
+      } else {
+        console.warn('Page Load Timer: gave up waiting for navigation timing after', MAX_RETRIES, 'retries');
       }
     }
 
     setTimeout(collectWhenReady, 0);
   });
+
+  function cleanResourceName(url) {
+    try {
+      const parsed = new URL(url);
+      const filename = parsed.pathname.split('/').pop();
+      if (filename) return filename;
+      // No filename (e.g. https://example.com/ or /api/data/) — show host + path
+      const path = parsed.pathname.replace(/\/+$/, '');
+      return parsed.hostname + (path || '/');
+    } catch {
+      const name = url.split('/').pop() || url;
+      return name.split('?')[0].split('#')[0] || name;
+    }
+  }
 
   function collectPerfData(nav) {
     const perfData = {
@@ -102,7 +121,7 @@
 
     resources.forEach(resource => {
       const item = {
-        name: resource.name.split('/').pop() || resource.name,
+        name: cleanResourceName(resource.name),
         url: resource.name,
         duration: Math.round(resource.duration),
         size: resource.transferSize || 0,

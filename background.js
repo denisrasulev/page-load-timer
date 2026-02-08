@@ -1,19 +1,59 @@
+// --- Constants ---
+const BADGE_FAST_MS = 1000;
+const BADGE_MODERATE_MS = 3000;
+const BADGE_COLOR_FAST = '#4CAF50';
+const BADGE_COLOR_MODERATE = '#FF9800';
+const BADGE_COLOR_SLOW = '#F44336';
+
 function getBadgeColor(loadTimeMs) {
-  if (loadTimeMs <= 1000) return '#4CAF50';  // Green: fast
-  if (loadTimeMs <= 3000) return '#FF9800';  // Orange: moderate
-  return '#F44336';                           // Red: slow
+  if (loadTimeMs <= BADGE_FAST_MS) return BADGE_COLOR_FAST;
+  if (loadTimeMs <= BADGE_MODERATE_MS) return BADGE_COLOR_MODERATE;
+  return BADGE_COLOR_SLOW;
 }
 
 function collectPerfFromPage() {
   const [nav] = performance.getEntriesByType('navigation');
   if (!nav || nav.loadEventEnd === 0) return null;
 
+  // Collect FCP and LCP vitals
+  const vitals = {};
+  try {
+    const paintEntries = performance.getEntriesByType('paint');
+    for (const entry of paintEntries) {
+      if (entry.name === 'first-contentful-paint') {
+        vitals.fcp = Math.round(entry.startTime);
+      }
+    }
+  } catch (e) { /* paint entries may not be available */ }
+
+  try {
+    const lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+    if (lcpEntries && lcpEntries.length > 0) {
+      vitals.lcp = Math.round(lcpEntries[lcpEntries.length - 1].startTime);
+    }
+  } catch (e) { /* LCP entries may not be available */ }
+
+  // Collect resources
   const resources = performance.getEntriesByType('resource');
   const grouped = { scripts: [], stylesheets: [], images: [], fonts: [], xhr: [], other: [] };
 
+  function cleanName(url) {
+    try {
+      const parsed = new URL(url);
+      const filename = parsed.pathname.split('/').pop();
+      if (filename) return filename;
+      // No filename (e.g. https://example.com/ or /api/data/) — show host + path
+      const path = parsed.pathname.replace(/\/+$/, '');
+      return parsed.hostname + (path || '/');
+    } catch {
+      const name = url.split('/').pop() || url;
+      return name.split('?')[0].split('#')[0] || name;
+    }
+  }
+
   resources.forEach(r => {
     const item = {
-      name: r.name.split('/').pop() || r.name,
+      name: cleanName(r.name),
       url: r.name,
       duration: Math.round(r.duration),
       size: r.transferSize || 0,
@@ -47,9 +87,29 @@ function collectPerfFromPage() {
         { phase: 'DOM',       start: Math.round(nav.responseEnd),       end: Math.round(nav.loadEventEnd) }
       ]
     },
-    vitals: {},
+    vitals: vitals,
     resources: grouped
   };
+}
+
+function updateBadge(perfData, tabId) {
+  if (!perfData.navigation || perfData.navigation.loadComplete == null) return;
+
+  chrome.storage.local.get(['settings'], (result) => {
+    const settings = result.settings || { showBadge: true };
+    if (!settings.showBadge) {
+      chrome.action.setBadgeText({ text: '', tabId: tabId });
+      return;
+    }
+
+    const secs = perfData.navigation.loadComplete / 1000;
+    const badgeText = secs < 10 ? secs.toFixed(2) : Math.round(secs).toString();
+    chrome.action.setBadgeText({ text: badgeText, tabId: tabId });
+    chrome.action.setBadgeBackgroundColor({
+      color: getBadgeColor(perfData.navigation.loadComplete),
+      tabId: tabId
+    });
+  });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -62,22 +122,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const perfData = results && results[0] && results[0].result;
       if (perfData) {
         chrome.storage.local.set({ ['perf_' + request.tabId]: perfData });
-
-        if (perfData.navigation && perfData.navigation.loadComplete != null) {
-          const secs = perfData.navigation.loadComplete / 1000;
-          let badgeText;
-          if (secs < 10) {
-            badgeText = secs.toFixed(2);
-          } else {
-            badgeText = Math.round(secs).toString();
-          }
-          chrome.action.setBadgeText({ text: badgeText, tabId: request.tabId });
-          chrome.action.setBadgeBackgroundColor({
-            color: getBadgeColor(perfData.navigation.loadComplete),
-            tabId: request.tabId
-          });
-        }
-
+        updateBadge(perfData, request.tabId);
         sendResponse({ success: true, perfData: perfData });
       } else {
         sendResponse({ success: false });
@@ -92,32 +137,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'perfData' && request.perfData && sender.tab && sender.tab.id) {
     const tabId = sender.tab.id;
     const perfData = request.perfData;
-
-    // Store per tab
     chrome.storage.local.set({ ['perf_' + tabId]: perfData });
+    updateBadge(perfData, tabId);
+    sendResponse({ success: true });
+    return true;
+  }
 
-    // Update badge
-    if (perfData.navigation && perfData.navigation.loadComplete != null) {
-      const secs = perfData.navigation.loadComplete / 1000;
-      let badgeText;
-      if (secs < 10) {
-        badgeText = secs.toFixed(2);              // "0.66", "1.16", "9.99"
-      } else {
-        badgeText = Math.round(secs).toString();  // "10", "120"
-      }
-
-      chrome.action.setBadgeText({ text: badgeText, tabId: tabId });
-      chrome.action.setBadgeBackgroundColor({
-        color: getBadgeColor(perfData.navigation.loadComplete),
-        tabId: tabId
+  // Badge setting changed from popup
+  if (request.action === 'badgeSettingChanged' && request.tabId != null) {
+    if (!request.showBadge) {
+      chrome.action.setBadgeText({ text: '', tabId: request.tabId });
+    } else {
+      // Re-apply badge from stored data
+      chrome.storage.local.get(['perf_' + request.tabId], (result) => {
+        const perfData = result['perf_' + request.tabId];
+        if (perfData) {
+          updateBadge(perfData, request.tabId);
+        }
       });
     }
-
-    sendResponse({ success: true });
-  } else {
-    sendResponse({ success: false });
+    return false;
   }
-  return true;
+
+  // Unknown message — don't call sendResponse
+  return false;
 });
 
 // Clean up stored data when a tab is closed
