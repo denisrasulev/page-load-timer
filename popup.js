@@ -15,34 +15,9 @@ const TYPE_TO_BADGE = {
 
 // --- Helpers ---
 
-function escapeHTML(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 function formatMs(value) {
   if (typeof value !== 'number' || isNaN(value)) return '--';
   return Math.round(value) + 'ms';
-}
-
-function cleanResourceName(url) {
-  if (!url || typeof url !== 'string') return 'unknown';
-  try {
-    const parsed = new URL(url);
-    const filename = parsed.pathname.split('/').pop();
-    if (filename) return filename;
-    // No filename (e.g. https://example.com/ or /api/data/) — show host + path
-    const path = parsed.pathname.replace(/\/+$/, '');
-    return parsed.hostname + (path || '/');
-  } catch {
-    // Fallback for non-standard URLs (data:, etc.)
-    const name = url.split('/').pop() || url;
-    return name.split('?')[0].split('#')[0] || name;
-  }
 }
 
 // --- Empty state ---
@@ -58,6 +33,14 @@ function showEmptyState() {
 // --- Settings defaults ---
 const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
 const DEFAULT_SETTINGS = { showBadge: true, density: 'default', showTimeline: true, showResources: true };
+
+// Atomic read-modify-write to avoid race conditions between rapid setting changes
+function updateSetting(key, value) {
+  chrome.storage.local.get(['settings'], (result) => {
+    const settings = { ...DEFAULT_SETTINGS, ...result.settings, [key]: value };
+    chrome.storage.local.set({ settings });
+  });
+}
 
 // --- Init ---
 
@@ -109,11 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Badge toggle handler
   badgeToggle.addEventListener('change', () => {
     const showBadge = badgeToggle.checked;
-    chrome.storage.local.get(['settings'], (result) => {
-      const settings = result.settings || DEFAULT_SETTINGS;
-      settings.showBadge = showBadge;
-      chrome.storage.local.set({ settings });
-    });
+    updateSetting('showBadge', showBadge);
 
     // Tell background to update/clear badge for current tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -131,11 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
   densitySelect.addEventListener('change', () => {
     const density = densitySelect.value;
     applyDensity(density);
-    chrome.storage.local.get(['settings'], (result) => {
-      const settings = result.settings || DEFAULT_SETTINGS;
-      settings.density = density;
-      chrome.storage.local.set({ settings });
-    });
+    updateSetting('density', density);
   });
 
   // Section toggle helper
@@ -143,11 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toggle.addEventListener('change', () => {
       const show = toggle.checked;
       section.classList.toggle('section-hidden', !show);
-      chrome.storage.local.get(['settings'], (result) => {
-        const settings = result.settings || DEFAULT_SETTINGS;
-        settings[settingKey] = show;
-        chrome.storage.local.set({ settings });
-      });
+      updateSetting(settingKey, show);
     });
   }
 

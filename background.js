@@ -34,39 +34,7 @@ function collectPerfFromPage() {
   } catch (e) { /* LCP entries may not be available */ }
 
   // Collect resources
-  const resources = performance.getEntriesByType('resource');
-  const grouped = { scripts: [], stylesheets: [], images: [], fonts: [], xhr: [], other: [] };
-
-  function cleanName(url) {
-    try {
-      const parsed = new URL(url);
-      const filename = parsed.pathname.split('/').pop();
-      if (filename) return filename;
-      // No filename (e.g. https://example.com/ or /api/data/) — show host + path
-      const path = parsed.pathname.replace(/\/+$/, '');
-      return parsed.hostname + (path || '/');
-    } catch {
-      const name = url.split('/').pop() || url;
-      return name.split('?')[0].split('#')[0] || name;
-    }
-  }
-
-  resources.forEach(r => {
-    const item = {
-      name: cleanName(r.name),
-      url: r.name,
-      duration: Math.round(r.duration),
-      size: r.transferSize || 0,
-      startTime: Math.round(r.startTime)
-    };
-    if (r.name.match(/\.(woff2?|ttf|otf|eot)(\?.*)?$/i)) grouped.fonts.push(item);
-    else if (r.initiatorType === 'script') grouped.scripts.push(item);
-    else if (r.initiatorType === 'link' || r.initiatorType === 'css') grouped.stylesheets.push(item);
-    else if (r.initiatorType === 'img') grouped.images.push(item);
-    else if (r.initiatorType === 'xmlhttprequest' || r.initiatorType === 'fetch') grouped.xhr.push(item);
-    else grouped.other.push(item);
-  });
-  Object.keys(grouped).forEach(k => grouped[k].sort((a, b) => b.duration - a.duration));
+  const grouped = groupResources(performance.getEntriesByType('resource'));
 
   return {
     url: window.location.href,
@@ -115,9 +83,15 @@ function updateBadge(perfData, tabId) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // On-demand collection triggered by popup
   if (request.action === 'collectNow' && request.tabId) {
+    // Inject shared utilities first, then run the collection function
     chrome.scripting.executeScript({
       target: { tabId: request.tabId },
-      func: collectPerfFromPage
+      files: ['shared.js']
+    }).then(() => {
+      return chrome.scripting.executeScript({
+        target: { tabId: request.tabId },
+        func: collectPerfFromPage
+      });
     }).then((results) => {
       const perfData = results && results[0] && results[0].result;
       if (perfData) {
