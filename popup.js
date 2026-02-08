@@ -31,8 +31,9 @@ function showEmptyState() {
 }
 
 // --- Settings defaults ---
+const THEME_OPTIONS = ['auto', 'light', 'dark'];
 const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
-const DEFAULT_SETTINGS = { showBadge: true, density: 'default', showTimeline: true, showResources: true };
+const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true };
 
 // Atomic read-modify-write to avoid race conditions between rapid setting changes
 function updateSetting(key, value) {
@@ -50,11 +51,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsBtn = document.getElementById('settings-btn');
   const settingsBack = document.getElementById('settings-back');
   const badgeToggle = document.getElementById('badge-toggle');
+  const themeSelect = document.getElementById('theme-select');
   const densitySelect = document.getElementById('density-select');
   const timelineToggle = document.getElementById('timeline-toggle');
   const resourcesToggle = document.getElementById('resources-toggle');
   const timelineSection = document.getElementById('timeline-section');
   const resourcesSection = document.getElementById('resources-section');
+
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    root.classList.remove('theme-auto', 'theme-light', 'theme-dark');
+    if (THEME_OPTIONS.includes(theme)) {
+      root.classList.add('theme-' + theme);
+    } else {
+      root.classList.add('theme-auto');
+    }
+  }
 
   function applyDensity(density) {
     document.body.classList.remove('density-roomy', 'density-default', 'density-compact');
@@ -69,6 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.local.get(['settings'], (result) => {
     const settings = result.settings || DEFAULT_SETTINGS;
     badgeToggle.checked = settings.showBadge !== false;
+    const theme = THEME_OPTIONS.includes(settings.theme) ? settings.theme : 'auto';
+    themeSelect.value = theme;
+    applyTheme(theme);
     const density = DENSITY_OPTIONS.includes(settings.density) ? settings.density : 'default';
     densitySelect.value = density;
     applyDensity(density);
@@ -104,6 +119,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     });
+  });
+
+  // Theme selector handler
+  themeSelect.addEventListener('change', () => {
+    const theme = themeSelect.value;
+    applyTheme(theme);
+    updateSetting('theme', theme);
   });
 
   // Density selector handler

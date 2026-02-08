@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +7,78 @@
     <style>
         :root {
             --bg-color: #ffffff;
+            --bg-page: #f9fafb;
+            --surface-color: #ffffff;
+            --surface-hover: #eef0f3;
             --text-primary: #1f2937;
             --text-secondary: #6b7280;
             --border-color: #e5e7eb;
             --accent-blue: #3b82f6;
             --accent-green: #10b981;
             --danger: #ef4444;
+            --danger-bg: #fde8e8;
             --warning: #f59e0b;
+            --toggle-bg: #d1d5db;
+            --toggle-knob: #ffffff;
+            --shadow: rgba(0,0,0,0.05);
+            --badge-js-bg: #eff6ff;     --badge-js-fg: #3b82f6;
+            --badge-css-bg: #fdf2f8;    --badge-css-fg: #db2777;
+            --badge-img-bg: #ecfdf5;    --badge-img-fg: #059669;
+            --badge-xhr-bg: #fef3c7;    --badge-xhr-fg: #d97706;
+            --badge-font-bg: #ede9fe;   --badge-font-fg: #7c3aed;
+            --badge-other-bg: #f3f4f6;  --badge-other-fg: #4b5563;
+        }
+
+        /* Dark theme — applied by JS class */
+        :root.theme-dark {
+            --bg-color: #1a1a2e;
+            --bg-page: #12121f;
+            --surface-color: #1e1e32;
+            --surface-hover: #2a2a44;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #2e2e48;
+            --accent-blue: #60a5fa;
+            --accent-green: #34d399;
+            --danger: #f87171;
+            --danger-bg: #3b1a1a;
+            --warning: #fbbf24;
+            --toggle-bg: #4a4a6a;
+            --toggle-knob: #e2e8f0;
+            --shadow: rgba(0,0,0,0.3);
+            --badge-js-bg: #1e293b;     --badge-js-fg: #60a5fa;
+            --badge-css-bg: #2d1a2e;    --badge-css-fg: #f472b6;
+            --badge-img-bg: #1a2e22;    --badge-img-fg: #34d399;
+            --badge-xhr-bg: #2e2a1a;    --badge-xhr-fg: #fbbf24;
+            --badge-font-bg: #251e3e;   --badge-font-fg: #a78bfa;
+            --badge-other-bg: #252538;  --badge-other-fg: #94a3b8;
+        }
+
+        /* Auto theme — follows OS preference */
+        @media (prefers-color-scheme: dark) {
+            :root.theme-auto {
+                --bg-color: #1a1a2e;
+                --bg-page: #12121f;
+                --surface-color: #1e1e32;
+                --surface-hover: #2a2a44;
+                --text-primary: #e2e8f0;
+                --text-secondary: #94a3b8;
+                --border-color: #2e2e48;
+                --accent-blue: #60a5fa;
+                --accent-green: #34d399;
+                --danger: #f87171;
+                --danger-bg: #3b1a1a;
+                --warning: #fbbf24;
+                --toggle-bg: #4a4a6a;
+                --toggle-knob: #e2e8f0;
+                --shadow: rgba(0,0,0,0.3);
+                --badge-js-bg: #1e293b;     --badge-js-fg: #60a5fa;
+                --badge-css-bg: #2d1a2e;    --badge-css-fg: #f472b6;
+                --badge-img-bg: #1a2e22;    --badge-img-fg: #34d399;
+                --badge-xhr-bg: #2e2a1a;    --badge-xhr-fg: #fbbf24;
+                --badge-font-bg: #251e3e;   --badge-font-fg: #a78bfa;
+                --badge-other-bg: #252538;  --badge-other-fg: #94a3b8;
+            }
         }
 
         body {
@@ -21,7 +86,7 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f9fafb;
+            background-color: var(--bg-page);
             color: var(--text-primary);
         }
 
@@ -96,7 +161,7 @@
             padding: 4px 8px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            background: white;
+            background: var(--surface-color);
             color: var(--text-primary);
             cursor: pointer;
             outline: none;
@@ -124,7 +189,7 @@
             position: absolute;
             cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #d1d5db;
+            background-color: var(--toggle-bg);
             border-radius: 20px;
             transition: background-color 0.2s;
         }
@@ -136,7 +201,7 @@
             width: 16px;
             left: 2px;
             bottom: 2px;
-            background-color: white;
+            background-color: var(--toggle-knob);
             border-radius: 50%;
             transition: transform 0.2s;
         }
@@ -158,10 +223,10 @@
         }
 
         .metric-card {
-            background: white;
+            background: var(--surface-color);
             padding: 12px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 3px var(--shadow);
             border: 1px solid var(--border-color);
             text-align: center;
         }
@@ -186,9 +251,9 @@
 
         /* Table Section */
         .table-container {
-            background: white;
+            background: var(--surface-color);
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 3px var(--shadow);
             border: 1px solid var(--border-color);
             overflow: hidden;
         }
@@ -203,7 +268,7 @@
         th {
             text-align: left;
             padding: 7px 16px;
-            background-color: #eef0f3;
+            background-color: var(--surface-hover);
             color: var(--text-secondary);
             font-weight: 700;
             font-size: 11px;
@@ -257,12 +322,12 @@
             flex-shrink: 0;
         }
 
-        .badge.js { background-color: #eff6ff; color: #3b82f6; }
-        .badge.css { background-color: #fdf2f8; color: #db2777; }
-        .badge.img { background-color: #ecfdf5; color: #059669; }
-        .badge.xhr { background-color: #fef3c7; color: #d97706; }
-        .badge.font { background-color: #ede9fe; color: #7c3aed; }
-        .badge.other { background-color: #f3f4f6; color: #4b5563; }
+        .badge.js { background-color: var(--badge-js-bg); color: var(--badge-js-fg); }
+        .badge.css { background-color: var(--badge-css-bg); color: var(--badge-css-fg); }
+        .badge.img { background-color: var(--badge-img-bg); color: var(--badge-img-fg); }
+        .badge.xhr { background-color: var(--badge-xhr-bg); color: var(--badge-xhr-fg); }
+        .badge.font { background-color: var(--badge-font-bg); color: var(--badge-font-fg); }
+        .badge.other { background-color: var(--badge-other-bg); color: var(--badge-other-fg); }
 
         .resource-row {
             display: flex;
@@ -297,7 +362,7 @@
         }
 
         .timeline-slowest td {
-            background-color: #fde8e8;
+            background-color: var(--danger-bg);
             color: var(--danger);
             font-weight: 600;
         }
@@ -386,6 +451,23 @@
             display: none;
         }
 
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 10px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 11px;
+            transition: color 0.15s;
+        }
+
+        .footer a:hover {
+            color: var(--accent-blue);
+        }
 
     </style>
 </head>
@@ -455,11 +537,12 @@
 
         <ul class="settings-list">
             <li class="settings-item">
-                <div class="settings-label">Show load time on extension icon</div>
-                <label class="toggle">
-                    <input type="checkbox" id="badge-toggle" checked>
-                    <span class="toggle-slider"></span>
-                </label>
+                <div class="settings-label">Theme</div>
+                <select id="theme-select" class="settings-select">
+                    <option value="auto" selected>Auto</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
             </li>
             <li class="settings-item">
                 <div class="settings-label">Choose information density</div>
@@ -468,6 +551,13 @@
                     <option value="default" selected>Default</option>
                     <option value="compact">Compact</option>
                 </select>
+            </li>
+            <li class="settings-item">
+                <div class="settings-label">Show load time on the icon</div>
+                <label class="toggle">
+                    <input type="checkbox" id="badge-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
             </li>
             <li class="settings-item">
                 <div class="settings-label">Show page load phases</div>
@@ -486,6 +576,10 @@
         </ul>
         </div>
     </div>
+
+    <footer class="footer">
+        <a href="https://denshub.com/" target="_blank" rel="noopener">denshub.com</a>
+    </footer>
 
     <script src="shared.js"></script>
     <script src="popup.js"></script>
