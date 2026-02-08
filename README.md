@@ -2,6 +2,9 @@
 
 A lightweight Chrome extension that measures page load performance for the active tab.
 
+## Screenshot
+![Page Speed Extension UI](./page-speed-screenshot-main.png)
+
 ## What it shows
 - Page Load, FCP, and LCP times
 - Load timeline phases (Redirect, DNS, Connect, Request, Response, DOM)
