@@ -35,7 +35,7 @@ const THEME_OPTIONS = ['auto', 'light', 'dark'];
 const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
 const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true };
 
-// Atomic read-modify-write to avoid race conditions between rapid setting changes
+// Read-modify-write helper — not truly atomic, but sufficient for sequential UI interactions
 function updateSetting(key, value) {
   chrome.storage.local.get(['settings'], (result) => {
     const settings = { ...DEFAULT_SETTINGS, ...result.settings, [key]: value };
@@ -293,6 +293,6 @@ function renderData(data) {
     }
   } catch (error) {
     console.error('Error displaying performance data:', error);
-    document.getElementById('resources-body').textContent = '';
+    showEmptyState();
   }
 }

@@ -16,6 +16,31 @@ function cleanResourceName(url) {
   }
 }
 
+function getNavigationTiming(nav) {
+  if (!nav) return null;
+  return {
+    domContentLoaded: Math.round(nav.domContentLoadedEventEnd),
+    loadComplete: Math.round(nav.loadEventEnd),
+    domInteractive: Math.round(nav.domInteractive),
+    dns: Math.round(nav.domainLookupEnd - nav.domainLookupStart),
+    tcp: Math.round(nav.connectEnd - nav.connectStart),
+    ttfb: Math.round(nav.responseStart),
+    timeline: [
+      { phase: 'Redirect',  start: Math.round(nav.redirectStart),      end: Math.round(nav.redirectEnd) },
+      { phase: 'DNS',       start: Math.round(nav.domainLookupStart),  end: Math.round(nav.domainLookupEnd) },
+      { phase: 'Connect',   start: Math.round(nav.connectStart),       end: Math.round(nav.connectEnd) },
+      { phase: 'Request',   start: Math.round(nav.requestStart),       end: Math.round(nav.responseStart) },
+      { phase: 'Response',  start: Math.round(nav.responseStart),      end: Math.round(nav.responseEnd) },
+      { phase: 'DOM',       start: Math.round(nav.responseEnd),        end: Math.round(nav.loadEventEnd) }
+    ]
+  };
+}
+
+const RE_FONT   = /\.(woff2?|ttf|otf|eot)(\?.*)?$/i;
+const RE_SCRIPT  = /\.(js|mjs)(\?.*)?$/i;
+const RE_STYLE   = /\.css(\?.*)?$/i;
+const RE_IMAGE   = /\.(png|jpe?g|gif|svg|webp|avif|ico|bmp)(\?.*)?$/i;
+
 function groupResources(resources) {
   const grouped = {
     scripts: [],
@@ -37,11 +62,11 @@ function groupResources(resources) {
       startTime: Math.round(resource.startTime)
     };
 
-    // Font check first (most specific — based on file extension)
-    if (url.match(/\.(woff2?|ttf|otf|eot)(\?.*)?$/i)) grouped.fonts.push(item);
-    else if (resource.initiatorType === 'script') grouped.scripts.push(item);
-    else if (resource.initiatorType === 'link' || resource.initiatorType === 'css') grouped.stylesheets.push(item);
-    else if (resource.initiatorType === 'img') grouped.images.push(item);
+    // Extension-based checks first (most reliable — initiatorType can miss dynamically loaded resources)
+    if (RE_FONT.test(url)) grouped.fonts.push(item);
+    else if (RE_SCRIPT.test(url) || resource.initiatorType === 'script') grouped.scripts.push(item);
+    else if (RE_STYLE.test(url) || resource.initiatorType === 'link' || resource.initiatorType === 'css') grouped.stylesheets.push(item);
+    else if (RE_IMAGE.test(url) || resource.initiatorType === 'img') grouped.images.push(item);
     else if (resource.initiatorType === 'xmlhttprequest' || resource.initiatorType === 'fetch') grouped.xhr.push(item);
     else grouped.other.push(item);
   });

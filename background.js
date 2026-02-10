@@ -39,7 +39,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       target: { tabId: request.tabId },
       files: ['shared.js', 'collect.js']
     }).then((results) => {
-      const perfData = results && results[0] && results[0].result;
+      // results[1] because files: ['shared.js', 'collect.js'] — collect.js is the second script
+      const perfData = results && results[1] && results[1].result;
       if (perfData) {
         chrome.storage.local.set({ ['perf_' + request.tabId]: perfData });
         updateBadge(perfData, request.tabId);

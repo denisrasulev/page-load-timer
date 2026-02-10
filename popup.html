@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance Monitor</title>
+    <title>Page Load Timer</title>
     <style>
         :root {
             --bg-color: #ffffff;
@@ -54,7 +54,8 @@
             --badge-other-bg: #252538;  --badge-other-fg: #94a3b8;
         }
 
-        /* Auto theme — follows OS preference */
+        /* Auto theme — follows OS preference (duplicates dark vars; CSS has no
+           cross-block variable reuse, so this is the standard pattern) */
         @media (prefers-color-scheme: dark) {
             :root.theme-auto {
                 --bg-color: #1a1a2e;
@@ -91,12 +92,12 @@
         }
 
         .container {
-            padding: 20px;
+            padding: 14px 20px 16px;
         }
 
         /* Header */
         header {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -114,7 +115,7 @@
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 22px;
+            font-size: 24px;
             color: var(--text-secondary);
             padding: 4px;
             line-height: 1;
@@ -132,6 +133,10 @@
         }
 
         /* Settings view */
+        #settings-view header {
+            margin-bottom: 8px;
+        }
+
         .settings-list {
             list-style: none;
             margin: 0;
@@ -158,7 +163,8 @@
         .settings-select {
             font-size: 12px;
             font-family: inherit;
-            padding: 4px 8px;
+            height: 20px;
+            padding: 0 8px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             background: var(--surface-color);
@@ -219,7 +225,7 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
         }
 
         .metric-card {
@@ -258,7 +264,6 @@
             overflow: hidden;
         }
 
-
         table {
             width: 100%;
             border-collapse: collapse;
@@ -295,6 +300,10 @@
             text-overflow: ellipsis;
             color: var(--text-primary);
             font-weight: 500;
+        }
+
+        .th-right {
+            text-align: right;
         }
 
         .resource-time {
@@ -381,12 +390,12 @@
         }
 
         body.density-roomy #main-view header {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         body.density-roomy #main-view .metrics-grid {
             gap: 14px;
-            margin-bottom: 28px;
+            margin-bottom: 20px;
         }
 
         body.density-roomy #main-view .metric-card {
@@ -409,16 +418,24 @@
             margin-bottom: 20px;
         }
 
+        body.density-roomy .container {
+            padding-bottom: 20px;
+        }
+
+        body.density-roomy .settings-item {
+            padding: 18px 0;
+        }
+
         /* Density: default — base styles, no overrides needed */
 
         /* Density: compact — scoped to main view only */
         body.density-compact #main-view header {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         body.density-compact #main-view .metrics-grid {
             gap: 8px;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         body.density-compact #main-view .metric-card {
@@ -446,6 +463,14 @@
             margin-bottom: 10px;
         }
 
+        body.density-compact .container {
+            padding-bottom: 10px;
+        }
+
+        body.density-compact .settings-item {
+            padding: 10px 0;
+        }
+
         /* Section visibility */
         .section-hidden {
             display: none;
@@ -453,9 +478,12 @@
 
         /* Footer */
         .footer {
+            position: sticky;
+            bottom: 0;
             text-align: center;
-            padding: 10px 20px;
+            padding: 6px 20px;
             border-top: 1px solid var(--border-color);
+            background-color: var(--bg-page);
         }
 
         .footer a {
@@ -499,7 +527,7 @@
 
         <!-- Load Timeline -->
         <div id="timeline-section" class="table-container section-gap">
-            <table class="timeline-table" cellspacing="0">
+            <table class="timeline-table">
                 <thead>
                     <tr>
                         <th>Load Timeline</th>
@@ -515,11 +543,11 @@
 
         <!-- Resources Table -->
         <div id="resources-section" class="table-container">
-            <table cellspacing="0">
+            <table>
                 <thead>
                     <tr>
                         <th>Top Slow Resources</th>
-                        <th style="text-align: right;">Time</th>
+                        <th class="th-right">Time</th>
                     </tr>
                 </thead>
                 <tbody id="resources-body">
@@ -531,13 +559,13 @@
         <!-- Settings View -->
         <div id="settings-view" class="view-hidden">
         <header>
-            <button id="settings-back" class="settings-btn" title="Back">&#8249;</button>
             <h2>Settings</h2>
+            <button id="settings-back" class="settings-btn" title="Back">&#8249;</button>
         </header>
 
         <ul class="settings-list">
             <li class="settings-item">
-                <div class="settings-label">Theme</div>
+                <div class="settings-label">Theme ("Auto" follows system)</div>
                 <select id="theme-select" class="settings-select">
                     <option value="auto" selected>Auto</option>
                     <option value="light">Light</option>
