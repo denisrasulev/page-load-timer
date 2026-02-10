@@ -20,13 +20,13 @@ A lightweight Chrome extension that measures and displays page load performance 
 
 ### Chrome Web Store
 
-<!-- TODO: uncomment once published
-[![Available in the Chrome Web Store](https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/UV4C4ybeBTsZt43U4xis.png)](https://chromewebstore.google.com/detail/PAGE_ID)
--->
+This is the **main and recommended** way to install the extension.
 
-*Coming soon* — the extension is pending review.
+`TODO:` Replace `CHROME_WEB_STORE_URL` after the listing is approved.
 
-### From source (developer mode)
+[Install from Chrome Web Store](CHROME_WEB_STORE_URL)
+
+### From source (developer mode, optional)
 
 1. Clone this repository:
    ```bash
