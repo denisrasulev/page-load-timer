@@ -2,9 +2,9 @@
 
 A lightweight Chrome extension that measures and displays page load performance metrics for the active tab. Zero dependencies, Manifest V3, under 15 KB total.
 
-| Light | Dark | Settings |
-|:-----:|:----:|:--------:|
-| ![Light theme](./screenshots/page-speed-screenshot-main.png) | ![Dark theme](./screenshots/page-speed-screenshot-dark.png) | ![Settings](./screenshots/page-speed-screenshot-settings.png) |
+| Light | Dark | Settings (Light) | Settings (Dark) |
+|:-----:|:----:|:----------------:|:---------------:|
+| ![Light theme](./screenshots/page-speed-screenshot-light.png) | ![Dark theme](./screenshots/page-speed-screenshot-dark.png) | ![Settings light](./screenshots/page-speed-settings-light.png) | ![Settings dark](./screenshots/page-speed-settings-dark.png) |
 
 ## Features
 
