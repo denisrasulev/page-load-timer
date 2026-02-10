@@ -4,7 +4,7 @@ A lightweight Chrome extension that measures and displays page load performance 
 
 | Light | Dark | Settings (Light) | Settings (Dark) |
 |:-----:|:----:|:----------------:|:---------------:|
-| ![Light theme](./screenshots/page-speed-screenshot-light.png) | ![Dark theme](./screenshots/page-speed-screenshot-dark.png) | ![Settings light](./screenshots/page-speed-settings-light.png) | ![Settings dark](./screenshots/page-speed-settings-dark.png) |
+| ![Light theme](./screenshots/page-load-screenshot-light.png) | ![Dark theme](./screenshots/page-load-screenshot-dark.png) | ![Settings light](./screenshots/page-load-settings-light.png) | ![Settings dark](./screenshots/page-load-settings-dark.png) |
 
 ## Features
 
@@ -30,7 +30,7 @@ This is the **main and recommended** way to install the extension.
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/denis-rasulev/page-speed.git
+   git clone https://github.com/denis-rasulev/page-load.git
    ```
 2. Open `chrome://extensions` in Chrome
 3. Enable **Developer mode** (top-right toggle)
@@ -65,7 +65,7 @@ popup.js renders on click
 ## Project Structure
 
 ```
-page-speed/
+page-load/
 ├── icons/                 # Extension icons (16, 32, 48, 128, 512px)
 ├── screenshots/           # README screenshots
 ├── manifest.json          # Extension config (Manifest V3)
