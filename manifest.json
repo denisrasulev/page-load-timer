@@ -3,7 +3,7 @@
   "name": "Page Load Timer",
   "version": "1.0.0",
   "description": "Measure page load performance",
-  "permissions": ["activeTab", "storage", "scripting", "tabs"],
+  "permissions": ["activeTab", "storage", "scripting"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
