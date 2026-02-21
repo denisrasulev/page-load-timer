@@ -4,7 +4,7 @@ A lightweight Chrome extension that measures and displays page load performance 
 
 | Light | Dark | Settings (Light) | Settings (Dark) |
 |:-----:|:----:|:----------------:|:---------------:|
-| ![Light theme](./screenshots/page-load-screenshot-light.png) | ![Dark theme](./screenshots/page-load-screenshot-dark.png) | ![Settings light](./screenshots/page-load-settings-light.png) | ![Settings dark](./screenshots/page-load-settings-dark.png) |
+| ![Light theme](./screens/page-load-screenshot-light.png) | ![Dark theme](./screens/page-load-screenshot-dark.png) | ![Settings light](./screens/page-load-settings-light.png) | ![Settings dark](./screens/page-load-settings-dark.png) |
 
 ## Features
 
@@ -22,15 +22,13 @@ A lightweight Chrome extension that measures and displays page load performance 
 
 This is the **main and recommended** way to install the extension.
 
-`TODO:` Replace `CHROME_WEB_STORE_URL` after the listing is approved.
-
-[Install from Chrome Web Store](CHROME_WEB_STORE_URL)
+[Install from Chrome Web Store](https://chromewebstore.google.com/detail/page-load-timer/mnohinnpeihinoeepiphjcgpknehahlf)
 
 ### From source (developer mode, optional)
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/denis-rasulev/page-load.git
+   git clone https://github.com/denisrasulev/page-load-timer.git
    ```
 2. Open `chrome://extensions` in Chrome
 3. Enable **Developer mode** (top-right toggle)
@@ -65,9 +63,9 @@ popup.js renders on click
 ## Project Structure
 
 ```
-page-load/
+page-load-timer/
 ├── icons/                 # Extension icons (16, 32, 48, 128, 512px)
-├── screenshots/           # README screenshots
+├── screens/               # README screenshots
 ├── manifest.json          # Extension config (Manifest V3)
 ├── shared.js              # Shared utilities
 ├── content.js             # Content script (auto-collects on page load)
@@ -87,7 +85,6 @@ page-load/
 | `activeTab` | Access performance data from the current tab |
 | `storage` | Persist settings and per-tab metrics |
 | `scripting` | Inject on-demand collector into already-loaded pages |
-| `tabs` | Read tab ID to associate metrics with the correct tab |
 
 ## Contributing
 
