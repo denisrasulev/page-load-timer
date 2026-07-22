@@ -223,14 +223,14 @@
         /* Metrics Grid */
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
             margin-bottom: 16px;
         }
 
         .metric-card {
             background: var(--surface-color);
-            padding: 12px;
+            padding: 10px 4px;
             border-radius: 8px;
             box-shadow: 0 1px 3px var(--shadow);
             border: 1px solid var(--border-color);
@@ -238,7 +238,7 @@
         }
 
         .metric-label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-secondary);
@@ -246,9 +246,10 @@
         }
 
         .metric-value {
-            font-size: 18px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
         }
 
         .metric-value.highlight {
@@ -294,7 +295,7 @@
         /* Resource styling */
         .resource-name {
             display: block;
-            max-width: 220px;
+            max-width: 170px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -310,6 +311,18 @@
             text-align: right;
             font-family: 'SF Mono', 'Roboto Mono', monospace;
             color: var(--text-secondary);
+        }
+
+        .resource-size {
+            text-align: right;
+            font-family: 'SF Mono', 'Roboto Mono', monospace;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .cached-size {
+            font-style: italic;
+            opacity: 0.7;
         }
 
         .slow-time {
@@ -349,9 +362,8 @@
             color: var(--text-secondary);
         }
 
-        /* Timeline table */
-        .timeline-table td,
-        .timeline-table th {
+        /* Timeline table — mono for data cells only; headers use the shared th style */
+        .timeline-table td {
             font-family: 'SF Mono', 'Roboto Mono', monospace;
             font-size: 12px;
         }
@@ -394,16 +406,16 @@
         }
 
         body.density-roomy #main-view .metrics-grid {
-            gap: 14px;
+            gap: 10px;
             margin-bottom: 20px;
         }
 
         body.density-roomy #main-view .metric-card {
-            padding: 14px;
+            padding: 12px 4px;
         }
 
         body.density-roomy #main-view .metric-value {
-            font-size: 20px;
+            font-size: 14px;
         }
 
         body.density-roomy #main-view th {
@@ -434,21 +446,21 @@
         }
 
         body.density-compact #main-view .metrics-grid {
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 10px;
         }
 
         body.density-compact #main-view .metric-card {
-            padding: 6px;
+            padding: 6px 3px;
         }
 
         body.density-compact #main-view .metric-label {
-            font-size: 10px;
+            font-size: 9px;
             margin-bottom: 2px;
         }
 
         body.density-compact #main-view .metric-value {
-            font-size: 15px;
+            font-size: 12px;
         }
 
         body.density-compact #main-view th {
@@ -523,6 +535,14 @@
                 <div class="metric-label">LCP</div>
                 <div class="metric-value" id="lcp-time">--</div>
             </div>
+            <div class="metric-card">
+                <div class="metric-label">TTFB</div>
+                <div class="metric-value" id="ttfb-time">--</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">DCL</div>
+                <div class="metric-value" id="dcl-time">--</div>
+            </div>
         </div>
 
         <!-- Load Timeline -->
@@ -547,6 +567,7 @@
                 <thead>
                     <tr>
                         <th>Top Slow Resources</th>
+                        <th class="th-right">Size</th>
                         <th class="th-right">Time</th>
                     </tr>
                 </thead>

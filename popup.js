@@ -15,9 +15,30 @@ const TYPE_TO_BADGE = {
 
 // --- Helpers ---
 
+// Thousands separator follows the browser UI locale (1,843 / 1 843 / 1.843)
 function formatMs(value) {
   if (typeof value !== 'number' || isNaN(value)) return '--';
-  return Math.round(value) + 'ms';
+  return Math.round(value).toLocaleString() + ' ms';
+}
+
+// Metric cards are narrow — switch to seconds at >= 10 s so 5-digit
+// values like "14,267 ms" don't wrap to a second line
+function formatCardMs(value) {
+  if (typeof value !== 'number' || isNaN(value)) return '--';
+  if (value >= 10000) {
+    return (value / 1000).toLocaleString(undefined, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    }) + ' s';
+  }
+  return formatMs(value);
+}
+
+function formatBytes(bytes) {
+  if (typeof bytes !== 'number' || !isFinite(bytes) || bytes <= 0) return 'n/a';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 // --- Empty state ---
@@ -26,6 +47,8 @@ function showEmptyState() {
   document.getElementById('load-time').textContent = '--';
   document.getElementById('fcp-time').textContent = '--';
   document.getElementById('lcp-time').textContent = '--';
+  document.getElementById('ttfb-time').textContent = '--';
+  document.getElementById('dcl-time').textContent = '--';
   document.getElementById('timeline-body').textContent = '';
   document.getElementById('resources-body').textContent = '';
 }
@@ -184,11 +207,15 @@ function renderData(data) {
     const loadComplete = navigation && typeof navigation.loadComplete === 'number' ? navigation.loadComplete : null;
     const fcp = vitals && typeof vitals.fcp === 'number' ? vitals.fcp : null;
     const lcp = vitals && typeof vitals.lcp === 'number' ? vitals.lcp : null;
+    const ttfb = navigation && typeof navigation.ttfb === 'number' ? navigation.ttfb : null;
+    const dcl = navigation && typeof navigation.domContentLoaded === 'number' ? navigation.domContentLoaded : null;
 
     // Update metric cards
-    document.getElementById('load-time').textContent = formatMs(loadComplete);
-    document.getElementById('fcp-time').textContent = formatMs(fcp);
-    document.getElementById('lcp-time').textContent = formatMs(lcp);
+    document.getElementById('load-time').textContent = formatCardMs(loadComplete);
+    document.getElementById('fcp-time').textContent = formatCardMs(fcp);
+    document.getElementById('lcp-time').textContent = formatCardMs(lcp);
+    document.getElementById('ttfb-time').textContent = formatCardMs(ttfb);
+    document.getElementById('dcl-time').textContent = formatCardMs(dcl);
 
     // Build timeline table
     const timelineBody = document.getElementById('timeline-body');
@@ -217,13 +244,13 @@ function renderData(data) {
         tdPhase.textContent = phase.phase;
 
         const tdStart = document.createElement('td');
-        tdStart.textContent = Math.round(phase.start) + 'ms';
+        tdStart.textContent = formatMs(phase.start);
 
         const tdEnd = document.createElement('td');
-        tdEnd.textContent = Math.round(phase.end) + 'ms';
+        tdEnd.textContent = formatMs(phase.end);
 
         const tdDuration = document.createElement('td');
-        tdDuration.textContent = Math.round(duration) + 'ms';
+        tdDuration.textContent = formatMs(duration);
 
         tr.append(tdPhase, tdStart, tdEnd, tdDuration);
         timelineBody.appendChild(tr);
@@ -283,11 +310,24 @@ function renderData(data) {
         resourceRow.append(badgeSpan, nameSpan);
         tdResource.appendChild(resourceRow);
 
+        const tdSize = document.createElement('td');
+        tdSize.className = 'resource-size';
+        if (resource.size > 0) {
+          tdSize.textContent = formatBytes(resource.size);
+          if (resource.cached) {
+            tdSize.classList.add('cached-size');
+            tdSize.title = 'Served from browser cache';
+          }
+        } else {
+          tdSize.textContent = 'n/a';
+          tdSize.title = 'Size not exposed by the server (cross-origin without Timing-Allow-Origin)';
+        }
+
         const tdTime = document.createElement('td');
         tdTime.className = 'resource-time' + (isSlow ? ' slow-time' : '');
-        tdTime.textContent = Math.round(resource.duration) + 'ms';
+        tdTime.textContent = formatMs(resource.duration);
 
-        tr.append(tdResource, tdTime);
+        tr.append(tdResource, tdSize, tdTime);
         resourcesBody.appendChild(tr);
       });
     }

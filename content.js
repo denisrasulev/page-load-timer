@@ -6,6 +6,12 @@
   // Module-scoped vitals accumulator — observers populate this asynchronously
   const vitals = {};
 
+  // Raise the resource timing buffer above the ~250-entry browser default so
+  // heavy pages don't silently drop entries before we collect them
+  try {
+    performance.setResourceTimingBufferSize(2000);
+  } catch (e) { /* older browsers may not support this */ }
+
   // Set up FCP observer immediately (document_start) to catch paint events
   try {
     const fcpObserver = new PerformanceObserver((list) => {

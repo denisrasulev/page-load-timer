@@ -8,9 +8,9 @@ A lightweight Chrome extension that measures and displays page load performance 
 
 ## Features
 
-- **Core Metrics** — Page Load time, First Contentful Paint (FCP), and Largest Contentful Paint (LCP)
+- **Core Metrics** — Page Load time, First Contentful Paint (FCP), Largest Contentful Paint (LCP), Time to First Byte (TTFB), and DOMContentLoaded (DCL)
 - **Load Timeline** — Phase-by-phase breakdown: Redirect, DNS, Connect, Request, Response, DOM processing
-- **Slow Resources** — Top 10 slowest resources with type badges (JS, CSS, IMG, XHR, FONT, OTHER)
+- **Slow Resources** — Top 10 slowest resources with type badges (JS, CSS, IMG, XHR, FONT, OTHER) and size — italic sizes were served from the browser cache (hover for details); `n/a` means the server does not expose the size (cross-origin without `Timing-Allow-Origin`)
 - **Badge Indicator** — Color-coded load time on the extension icon (green ≤1s, orange ≤3s, red >3s)
 - **Themes** — Auto (follows OS), Light, and Dark
 - **Density** — Roomy, Default, and Compact layouts
