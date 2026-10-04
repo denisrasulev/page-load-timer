@@ -16,7 +16,8 @@ function updateBadge(perfData, tabId) {
 
   chrome.storage.local.get(['settings'], (result) => {
     const settings = result.settings || { showBadge: true };
-    if (!settings.showBadge) {
+    // Only an explicit "off" hides the badge (same rule as the popup toggle)
+    if (settings.showBadge === false) {
       chrome.action.setBadgeText({ text: '', tabId: tabId });
       return;
     }
@@ -39,10 +40,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       target: { tabId: request.tabId },
       files: ['shared.js', 'collect.js']
     }).then((results) => {
-      // results[1] because files: ['shared.js', 'collect.js'] — collect.js is the second script
-      const perfData = results && results[1] && results[1].result;
+      // executeScript returns one result per frame (not per file); only the top
+      // frame is targeted, so the last injected file's value is in results[0]
+      const perfData = results && results[0] && results[0].result;
       if (perfData) {
-        chrome.storage.local.set({ ['perf_' + request.tabId]: perfData });
+        chrome.storage.session.set({ ['perf_' + request.tabId]: perfData });
         updateBadge(perfData, request.tabId);
         sendResponse({ success: true, perfData: perfData });
       } else {
@@ -58,10 +60,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'perfData' && request.perfData && sender.tab && sender.tab.id) {
     const tabId = sender.tab.id;
     const perfData = request.perfData;
-    chrome.storage.local.set({ ['perf_' + tabId]: perfData });
+    chrome.storage.session.set({ ['perf_' + tabId]: perfData });
     updateBadge(perfData, tabId);
     sendResponse({ success: true });
     return true;
+  }
+
+  // Popup found the tab's domain on the ignore list: drop its data and badge
+  if (request.action === 'clearTabData' && request.tabId != null) {
+    chrome.storage.session.remove('perf_' + request.tabId);
+    chrome.action.setBadgeText({ text: '', tabId: request.tabId });
+    return false;
   }
 
   // Badge setting changed from popup
@@ -70,7 +79,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.action.setBadgeText({ text: '', tabId: request.tabId });
     } else {
       // Re-apply badge from stored data
-      chrome.storage.local.get(['perf_' + request.tabId], (result) => {
+      chrome.storage.session.get(['perf_' + request.tabId], (result) => {
         const perfData = result['perf_' + request.tabId];
         if (perfData) {
           updateBadge(perfData, request.tabId);
@@ -84,7 +93,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return false;
 });
 
-// Clean up stored data when a tab is closed
+// Per-tab data lives in storage.session (cleared when the browser closes, so
+// reused tab IDs never inherit old data); drop it when the tab closes too
 chrome.tabs.onRemoved.addListener((tabId) => {
-  chrome.storage.local.remove('perf_' + tabId);
+  chrome.storage.session.remove('perf_' + tabId);
+});
+
+// One-time cleanup of per-tab entries that older versions wrote to storage.local
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.local.get(null, (items) => {
+    const stale = Object.keys(items).filter((key) => key.startsWith('perf_'));
+    if (stale.length > 0) chrome.storage.local.remove(stale);
+  });
 });

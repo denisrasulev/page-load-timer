@@ -12,9 +12,34 @@
     performance.setResourceTimingBufferSize(2000);
   } catch (e) { /* older browsers may not support this */ }
 
+  // Observers start immediately (document_start can't wait for the async settings
+  // read), so they are kept here to be shut down if this domain is ignored
+  let fcpObserver = null;
+  let lcpObserver = null;
+
+  // Resolves true when the user's ignore list covers this page's host. Anything
+  // that goes wrong reading settings counts as "not ignored".
+  const ignoredCheck = new Promise((resolve) => {
+    try {
+      chrome.storage.local.get(['settings'], (result) => {
+        const list = result && result.settings && result.settings.ignoredDomains;
+        const ignored = typeof isIgnoredDomain === 'function' &&
+          isIgnoredDomain(window.location.hostname, list);
+        if (ignored) {
+          if (fcpObserver) fcpObserver.disconnect();
+          if (lcpObserver) lcpObserver.disconnect();
+          delete window.__plt_vitals_c9e2;
+        }
+        resolve(!!ignored);
+      });
+    } catch (e) {
+      resolve(false);
+    }
+  });
+
   // Set up FCP observer immediately (document_start) to catch paint events
   try {
-    const fcpObserver = new PerformanceObserver((list) => {
+    fcpObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         if (entry.name === 'first-contentful-paint') {
           vitals.fcp = Math.round(entry.startTime);
@@ -27,7 +52,7 @@
 
   // Set up LCP observer immediately
   try {
-    const lcpObserver = new PerformanceObserver((list) => {
+    lcpObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       if (entries.length === 0) return;
       const lastEntry = entries[entries.length - 1];
@@ -52,7 +77,11 @@
       }
     }
 
-    setTimeout(collectWhenReady, 0);
+    // Never measure or send anything for an ignored domain
+    ignoredCheck.then((ignored) => {
+      if (ignored) return;
+      setTimeout(collectWhenReady, 0);
+    });
   });
 
   function collectPerfData(nav) {

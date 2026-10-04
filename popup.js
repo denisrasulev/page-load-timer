@@ -96,6 +96,12 @@ function setCard(id, key, value) {
   el.append(parts.num, unit);
 }
 
+// URLs match when equal ignoring the #fragment; an unknown tab URL never matches
+function sameDocumentUrl(dataUrl, tabUrl) {
+  if (typeof dataUrl !== 'string' || typeof tabUrl !== 'string') return false;
+  return dataUrl.split('#')[0] === tabUrl.split('#')[0];
+}
+
 function formatBytes(bytes) {
   if (typeof bytes !== 'number' || !isFinite(bytes) || bytes <= 0) return 'n/a';
   if (bytes < 1024) return bytes + ' B';
@@ -118,7 +124,35 @@ function showEmptyState() {
 // --- Settings defaults ---
 const THEME_OPTIONS = ['auto', 'light', 'dark'];
 const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
-const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true };
+const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true, ignoredDomains: [] };
+
+// Remember theme and density in localStorage so early.js can apply them before
+// the first paint (chrome.storage is asynchronous and arrives too late)
+function cacheUi(key, value) {
+  try {
+    let ui = {};
+    try { ui = JSON.parse(localStorage.getItem('plt_ui') || '{}') || {}; } catch (e) { /* corrupt: start over */ }
+    if (typeof ui !== 'object') ui = {};
+    ui[key] = value;
+    localStorage.setItem('plt_ui', JSON.stringify(ui));
+  } catch (e) { /* storage unavailable: the cache is only an optimization */ }
+}
+
+// Pages the extension cannot run on (browser pages, the Web Store, non-http)
+function isRestrictedPage(url) {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return true;
+  try {
+    const u = new URL(url);
+    return u.hostname === 'chromewebstore.google.com' ||
+      (u.hostname === 'chrome.google.com' && u.pathname.startsWith('/webstore'));
+  } catch (e) {
+    return true;
+  }
+}
+
+const STATUS_IGNORED = 'Measurement is off for this domain (see Settings)';
+const STATUS_RESTRICTED = "Can't measure this page";
+const STATUS_NO_DATA = 'No timing data yet. Try again once the page has finished loading.';
 
 // Read-modify-write helper — not truly atomic, but sufficient for sequential UI interactions
 function updateSetting(key, value) {
@@ -144,6 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const resourcesToggle = document.getElementById('resources-toggle');
   const timelineSection = document.getElementById('timeline-section');
   const resourcesSection = document.getElementById('resources-section');
+  const ignoredInput = document.getElementById('ignored-domains');
+  const statusNote = document.getElementById('status-note');
 
   function applyTheme(theme) {
     const root = document.documentElement;
@@ -153,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       root.classList.add('theme-auto');
     }
+    cacheUi('theme', THEME_OPTIONS.includes(theme) ? theme : 'auto');
   }
 
   function applyDensity(density) {
@@ -162,6 +199,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       document.body.classList.add('density-default');
     }
+    cacheUi('density', DENSITY_OPTIONS.includes(density) ? density : 'default');
+  }
+
+  // Empty cards plus a one-line explanation under the header
+  function showStatus(text) {
+    showEmptyState();
+    statusNote.textContent = text;
+    statusNote.classList.remove('section-hidden');
   }
 
   // Load settings and set toggle/radio state
@@ -178,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     resourcesToggle.checked = settings.showResources !== false;
     timelineSection.classList.toggle('section-hidden', settings.showTimeline === false);
     resourcesSection.classList.toggle('section-hidden', settings.showResources === false);
+    ignoredInput.value = Array.isArray(settings.ignoredDomains) ? settings.ignoredDomains.join('\n') : '';
   });
 
   // Settings view switching
@@ -234,6 +280,35 @@ document.addEventListener('DOMContentLoaded', () => {
   sectionToggleHandler(timelineToggle, timelineSection, 'showTimeline');
   sectionToggleHandler(resourcesToggle, resourcesSection, 'showResources');
 
+  // Ignored domains: one per line. Save while typing (the popup can close without
+  // a blur/change event), and tidy the text once the field loses focus.
+  function parseDomainList(text) {
+    const seen = new Set();
+    const list = [];
+    text.split('\n').forEach((line) => {
+      const domain = normalizeDomain(line);
+      if (domain && !seen.has(domain)) {
+        seen.add(domain);
+        list.push(domain);
+      }
+    });
+    return list;
+  }
+
+  ignoredInput.addEventListener('input', () => {
+    updateSetting('ignoredDomains', parseDomainList(ignoredInput.value));
+  });
+
+  ignoredInput.addEventListener('change', () => {
+    ignoredInput.value = parseDomainList(ignoredInput.value).join('\n');
+  });
+
+  // Ignored domain: show the note, forget any data and badge for this tab
+  function showIgnoredState(tabId) {
+    showStatus(STATUS_IGNORED);
+    chrome.runtime.sendMessage({ action: 'clearTabData', tabId: tabId });
+  }
+
   // Load perf data
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs || !tabs[0]) {
@@ -242,22 +317,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const tabId = tabs[0].id;
-    chrome.storage.local.get(['perf_' + tabId], (result) => {
-      const data = result['perf_' + tabId];
+    const tabUrl = tabs[0].url;
 
-      if (!data) {
-        // Try on-demand collection for already-loaded tabs
-        chrome.runtime.sendMessage({ action: 'collectNow', tabId: tabId }, (response) => {
-          if (chrome.runtime.lastError || !response || !response.success) {
-            showEmptyState();
-            return;
-          }
-          renderData(response.perfData);
-        });
+    chrome.storage.local.get(['settings'], (settingsResult) => {
+      // Non-http tabs and tabs without a readable URL are never "ignored"
+      let hostname = '';
+      try { hostname = new URL(tabUrl).hostname; } catch (e) { /* no URL */ }
+      const ignoredList = settingsResult.settings && settingsResult.settings.ignoredDomains;
+      if (hostname && isIgnoredDomain(hostname, ignoredList)) {
+        showIgnoredState(tabId);
         return;
       }
 
-      renderData(data);
+      // A readable URL that is a browser page or the Web Store can never be measured
+      if (typeof tabUrl === 'string' && isRestrictedPage(tabUrl)) {
+        showStatus(STATUS_RESTRICTED);
+        return;
+      }
+
+      chrome.storage.session.get(['perf_' + tabId], (result) => {
+        const data = result['perf_' + tabId];
+
+        // Stored data only counts if it was recorded for the page the tab shows now;
+        // otherwise (navigated away, restricted page, SPA route change) re-collect
+        if (!data || !sameDocumentUrl(data.url, tabUrl)) {
+          // Try on-demand collection for already-loaded tabs
+          chrome.runtime.sendMessage({ action: 'collectNow', tabId: tabId }, (response) => {
+            if (chrome.runtime.lastError || !response || !response.success) {
+              // No readable URL usually means a browser page; otherwise the page
+              // is still loading or has no timing data
+              showStatus(typeof tabUrl === 'string' ? STATUS_NO_DATA : STATUS_RESTRICTED);
+              return;
+            }
+            renderData(response.perfData);
+          });
+          return;
+        }
+
+        renderData(data);
+      });
     });
   });
 });

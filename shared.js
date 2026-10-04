@@ -89,6 +89,38 @@
     return grouped;
   }
 
+  // --- Ignore list helpers ---
+
+  // Turn whatever the user typed ("https://www.Example.com:8080/path", "*.example.com")
+  // into a bare lowercase hostname without "www.". Returns '' for garbage input.
+  function normalizeDomain(input) {
+    if (typeof input !== 'string') return '';
+    let value = input.trim().toLowerCase();
+    if (!value) return '';
+    value = value.replace(/^\*\./, '');
+    let hostname = '';
+    try {
+      hostname = new URL(/^[a-z][a-z0-9+.-]*:\/\//.test(value) ? value : 'http://' + value).hostname;
+    } catch {
+      return '';
+    }
+    hostname = hostname.replace(/^www\./, '').replace(/\.$/, '');
+    // Letters, digits, dots and hyphens only, with no empty labels
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)*$/.test(hostname)) return '';
+    return hostname;
+  }
+
+  // "example.com" matches example.com, www.example.com and sub.example.com
+  function isIgnoredDomain(hostname, list) {
+    if (typeof hostname !== 'string' || !Array.isArray(list) || list.length === 0) return false;
+    const host = hostname.toLowerCase().replace(/^www\./, '');
+    if (!host) return false;
+    return list.some((entry) => typeof entry === 'string' && entry !== '' &&
+      (host === entry || host.endsWith('.' + entry)));
+  }
+
+  window.normalizeDomain = normalizeDomain;
+  window.isIgnoredDomain = isIgnoredDomain;
   window.cleanResourceName = cleanResourceName;
   window.getNavigationTiming = getNavigationTiming;
   window.groupResources = groupResources;
