@@ -1,6 +1,6 @@
 # Page Load Timer
 
-A lightweight Chrome extension that measures and displays page load performance metrics for the active tab. Zero dependencies, Manifest V3, under 15 KB total.
+A lightweight Chrome extension that measures and displays page load performance metrics for the active tab. Zero dependencies, Manifest V3, about 30 KB packaged.
 
 | Light | Dark | Settings (Light) | Settings (Dark) |
 |:-----:|:----:|:----------------:|:---------------:|

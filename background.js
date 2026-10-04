@@ -41,8 +41,12 @@ function updateBadge(perfData, tabId) {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Messages from the popup carry no sender.tab; content scripts always do.
+  // Only the popup may pick which tab to collect from, clear or re-badge.
+  const fromPopup = !sender.tab;
+
   // On-demand collection triggered by popup
-  if (request.action === 'collectNow' && isRealTab(request.tabId)) {
+  if (request.action === 'collectNow' && fromPopup && isRealTab(request.tabId)) {
     // Inject shared utilities and collector as files to avoid func: serialization issues
     chrome.scripting.executeScript({
       target: { tabId: request.tabId },
@@ -80,14 +84,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // Popup found the tab's domain on the ignore list: drop its data and badge
-  if (request.action === 'clearTabData' && isRealTab(request.tabId)) {
+  if (request.action === 'clearTabData' && fromPopup && isRealTab(request.tabId)) {
     chrome.storage.session.remove('perf_' + request.tabId);
     chrome.action.setBadgeText({ text: '', tabId: request.tabId });
     return false;
   }
 
   // Badge setting changed from popup
-  if (request.action === 'badgeSettingChanged' && isRealTab(request.tabId)) {
+  if (request.action === 'badgeSettingChanged' && fromPopup && isRealTab(request.tabId)) {
     if (!request.showBadge) {
       chrome.action.setBadgeText({ text: '', tabId: request.tabId });
     } else {

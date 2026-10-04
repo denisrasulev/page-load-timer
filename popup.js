@@ -1,7 +1,7 @@
 // --- Constants ---
 const SLOW_RESOURCE_THRESHOLD_MS = 500;
 const RESOURCE_NAME_MAX_LENGTH = 35;
-const TOP_RESOURCES_COUNT = 10;
+const TOP_RESOURCES_COUNT = 10; // must be <= MAX_RESOURCES_PER_TYPE in shared.js
 
 // Ad bar entries (referral links plus a review prompt); one is picked at
 // random each time the popup opens. Keep every url on https.
@@ -377,13 +377,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// What the popup would show differently if it re-rendered: vitals and the resource count
+// Everything the popup renders; the timestamp alone changes on every collection
 function dataSignature(data) {
-  const resources = data && data.resources ? data.resources : {};
-  const count = Object.keys(resources).reduce((sum, key) => {
-    return sum + (Array.isArray(resources[key]) ? resources[key].length : 0);
-  }, 0);
-  return JSON.stringify([data && data.vitals, count]);
+  return JSON.stringify(data ? [data.navigation, data.vitals, data.resources] : null);
 }
 
 // --- Render ---

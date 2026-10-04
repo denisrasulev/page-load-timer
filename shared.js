@@ -47,6 +47,9 @@
   const RE_STYLE   = /\.css(\?.*)?$/i;
   const RE_IMAGE   = /\.(png|jpe?g|gif|svg|webp|avif|ico|bmp)(\?.*)?$/i;
 
+  // Must be >= TOP_RESOURCES_COUNT in popup.js
+  const MAX_RESOURCES_PER_TYPE = 10;
+
   function groupResources(resources) {
     const grouped = {
       scripts: [],
@@ -82,8 +85,12 @@
       else grouped.other.push(item);
     });
 
+    // Keep only the slowest few per type: the popup shows the overall top 10,
+    // which this always contains, and per-tab storage stays small on heavy pages
     Object.keys(grouped).forEach(key => {
-      grouped[key].sort((a, b) => b.duration - a.duration);
+      grouped[key] = grouped[key]
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, MAX_RESOURCES_PER_TYPE);
     });
 
     return grouped;

@@ -12,7 +12,7 @@
   // Prefer vitals cached by the content script's PerformanceObservers (LCP is
   // only available via observer; paint entries may also be unavailable after the fact).
   // Fall back to getEntriesByType for FCP in case the content script didn't run.
-  // Validate types defensively — the window property is accessible to page scripts.
+  // Validate types defensively: the cache may come from an older extension version.
   const raw = window.__plt_vitals_c9e2;
   const cached = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
   const vitals = {};

@@ -80,6 +80,14 @@
     // Never measure or send anything for an ignored domain
     ignoredCheck.then((ignored) => {
       if (ignored) return;
+      // A prerendered page loads before it has a real tab, so background.js
+      // would drop its data; send it once the user actually opens the page
+      if (document.prerendering) {
+        document.addEventListener('prerenderingchange', () => {
+          setTimeout(collectWhenReady, 0);
+        }, { once: true });
+        return;
+      }
       setTimeout(collectWhenReady, 0);
     });
   });
