@@ -150,9 +150,9 @@ function isRestrictedPage(url) {
   }
 }
 
-const STATUS_IGNORED = 'Measurement is off for this domain (see Settings)';
-const STATUS_RESTRICTED = "Can't measure this page";
-const STATUS_NO_DATA = 'No timing data yet. Try again once the page has finished loading.';
+const STATUS_IGNORED = 'You’ve ignored this site. Edit the list in Settings.';
+const STATUS_RESTRICTED = 'Nothing to measure here. Open a site to see metrics.';
+const STATUS_NO_DATA = 'Waiting for the page to load. Try again in a moment.';
 
 // Read-modify-write helper — not truly atomic, but sufficient for sequential UI interactions
 function updateSetting(key, value) {
@@ -310,6 +310,13 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.runtime.sendMessage({ action: 'clearTabData', tabId: tabId });
   }
 
+  // Browser page (New Tab, settings, Web Store): nothing to show, and no data or
+  // badge may be left over for this tab, so the icon and the popup always agree
+  function showRestrictedState(tabId) {
+    showStatus(STATUS_RESTRICTED);
+    chrome.runtime.sendMessage({ action: 'clearTabData', tabId: tabId });
+  }
+
   // Load perf data
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs || !tabs[0]) {
@@ -332,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // A readable URL that is a browser page or the Web Store can never be measured
       if (typeof tabUrl === 'string' && isRestrictedPage(tabUrl)) {
-        showStatus(STATUS_RESTRICTED);
+        showRestrictedState(tabId);
         return;
       }
 
@@ -347,7 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (chrome.runtime.lastError || !response || !response.success) {
               // No readable URL usually means a browser page; otherwise the page
               // is still loading or has no timing data
-              showStatus(typeof tabUrl === 'string' ? STATUS_NO_DATA : STATUS_RESTRICTED);
+              if (typeof tabUrl === 'string') showStatus(STATUS_NO_DATA);
+              else showRestrictedState(tabId);
               return;
             }
             renderData(response.perfData);
