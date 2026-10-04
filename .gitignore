@@ -29,9 +29,6 @@ coverage/
 *.pem
 *.zip
 
-# Chrome Web Store assets
-webstore/
-
 # Environment files
 .env
 .env.*
