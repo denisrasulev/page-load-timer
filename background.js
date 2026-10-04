@@ -16,7 +16,8 @@ function updateBadge(perfData, tabId) {
 
   chrome.storage.local.get(['settings'], (result) => {
     const settings = result.settings || { showBadge: true };
-    if (!settings.showBadge) {
+    // Only an explicit "off" hides the badge (same rule as the popup toggle)
+    if (settings.showBadge === false) {
       chrome.action.setBadgeText({ text: '', tabId: tabId });
       return;
     }

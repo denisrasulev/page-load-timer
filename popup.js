@@ -105,6 +105,34 @@ const THEME_OPTIONS = ['auto', 'light', 'dark'];
 const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
 const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true, ignoredDomains: [] };
 
+// Remember theme and density in localStorage so early.js can apply them before
+// the first paint (chrome.storage is asynchronous and arrives too late)
+function cacheUi(key, value) {
+  try {
+    let ui = {};
+    try { ui = JSON.parse(localStorage.getItem('plt_ui') || '{}') || {}; } catch (e) { /* corrupt: start over */ }
+    if (typeof ui !== 'object') ui = {};
+    ui[key] = value;
+    localStorage.setItem('plt_ui', JSON.stringify(ui));
+  } catch (e) { /* storage unavailable: the cache is only an optimization */ }
+}
+
+// Pages the extension cannot run on (browser pages, the Web Store, non-http)
+function isRestrictedPage(url) {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return true;
+  try {
+    const u = new URL(url);
+    return u.hostname === 'chromewebstore.google.com' ||
+      (u.hostname === 'chrome.google.com' && u.pathname.startsWith('/webstore'));
+  } catch (e) {
+    return true;
+  }
+}
+
+const STATUS_IGNORED = 'Measurement is off for this domain (see Settings)';
+const STATUS_RESTRICTED = "Can't measure this page";
+const STATUS_NO_DATA = 'No timing data yet. Try again once the page has finished loading.';
+
 // Read-modify-write helper — not truly atomic, but sufficient for sequential UI interactions
 function updateSetting(key, value) {
   chrome.storage.local.get(['settings'], (result) => {
@@ -128,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const timelineSection = document.getElementById('timeline-section');
   const resourcesSection = document.getElementById('resources-section');
   const ignoredInput = document.getElementById('ignored-domains');
-  const ignoredNote = document.getElementById('ignored-note');
+  const statusNote = document.getElementById('status-note');
 
   function applyTheme(theme) {
     const root = document.documentElement;
@@ -138,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       root.classList.add('theme-auto');
     }
+    cacheUi('theme', THEME_OPTIONS.includes(theme) ? theme : 'auto');
   }
 
   function applyDensity(density) {
@@ -147,6 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       document.body.classList.add('density-default');
     }
+    cacheUi('density', DENSITY_OPTIONS.includes(density) ? density : 'default');
+  }
+
+  // Empty cards plus a one-line explanation under the header
+  function showStatus(text) {
+    showEmptyState();
+    statusNote.textContent = text;
+    statusNote.classList.remove('section-hidden');
   }
 
   // Load settings and set toggle/radio state
@@ -245,8 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Ignored domain: show the note, forget any data and badge for this tab
   function showIgnoredState(tabId) {
-    showEmptyState();
-    ignoredNote.classList.remove('section-hidden');
+    showStatus(STATUS_IGNORED);
     chrome.runtime.sendMessage({ action: 'clearTabData', tabId: tabId });
   }
 
@@ -270,6 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // A readable URL that is a browser page or the Web Store can never be measured
+      if (typeof tabUrl === 'string' && isRestrictedPage(tabUrl)) {
+        showStatus(STATUS_RESTRICTED);
+        return;
+      }
+
       chrome.storage.session.get(['perf_' + tabId], (result) => {
         const data = result['perf_' + tabId];
 
@@ -279,7 +321,9 @@ document.addEventListener('DOMContentLoaded', () => {
           // Try on-demand collection for already-loaded tabs
           chrome.runtime.sendMessage({ action: 'collectNow', tabId: tabId }, (response) => {
             if (chrome.runtime.lastError || !response || !response.success) {
-              showEmptyState();
+              // No readable URL usually means a browser page; otherwise the page
+              // is still loading or has no timing data
+              showStatus(typeof tabUrl === 'string' ? STATUS_NO_DATA : STATUS_RESTRICTED);
               return;
             }
             renderData(response.perfData);

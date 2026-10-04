@@ -641,8 +641,9 @@
             border-color: var(--accent-blue);
         }
 
-        /* Shown under the header when the current tab's domain is ignored */
-        .ignored-note {
+        /* Shown under the header when there is nothing to measure (ignored domain,
+           restricted page, no data yet) */
+        .status-note {
             text-align: center;
             padding: 6px 0 12px;
             font-size: 12px;
@@ -661,6 +662,7 @@
     </style>
 </head>
 <body>
+    <script src="early.js"></script>
 
     <div class="container">
         <!-- Main View -->
@@ -670,7 +672,7 @@
             <button id="settings-btn" class="settings-btn" title="Settings">&#9881;</button>
         </header>
 
-        <div id="ignored-note" class="ignored-note section-hidden">Measurement is off for this domain (see Settings)</div>
+        <div id="status-note" class="status-note section-hidden"></div>
 
         <!-- Top Metrics Cards -->
         <div id="vitals-section" class="metrics-grid">
