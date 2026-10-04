@@ -13,25 +13,66 @@ const TYPE_TO_BADGE = {
   other:       { cls: 'other', text: 'OTHER' }
 };
 
+// Card value colors: [good upper bound, needs-improvement upper bound] in ms.
+// FCP / LCP / TTFB use Google's published Core Web Vitals limits; page load
+// and DCL reuse the icon-badge limits in background.js (keep them in sync).
+const METRIC_THRESHOLDS = {
+  load: [1000, 3000],
+  fcp:  [1800, 3000],
+  lcp:  [2500, 4000],
+  ttfb: [800, 1800],
+  dcl:  [1000, 3000]
+};
+
 // --- Helpers ---
 
-// Thousands separator follows the browser UI locale (1,843 / 1 843 / 1.843)
-function formatMs(value) {
+// Thousands separator follows the browser UI locale (1,843 / 1 843 / 1.843).
+// Units live in the column headers, so table cells show bare numbers.
+function formatNumber(value) {
   if (typeof value !== 'number' || isNaN(value)) return '--';
-  return Math.round(value).toLocaleString() + ' ms';
+  return Math.round(value).toLocaleString();
 }
 
 // Metric cards are narrow — switch to seconds at >= 10 s so 5-digit
-// values like "14,267 ms" don't wrap to a second line
-function formatCardMs(value) {
-  if (typeof value !== 'number' || isNaN(value)) return '--';
+// values like "14,267" don't crowd the card
+function formatCardParts(value) {
+  if (typeof value !== 'number' || isNaN(value)) return null;
   if (value >= 10000) {
-    return (value / 1000).toLocaleString(undefined, {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1
-    }) + ' s';
+    return {
+      num: (value / 1000).toLocaleString(undefined, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      }),
+      unit: 's'
+    };
   }
-  return formatMs(value);
+  return { num: formatNumber(value), unit: 'ms' };
+}
+
+function rateMetric(key, value) {
+  const limits = METRIC_THRESHOLDS[key];
+  if (!limits || typeof value !== 'number' || isNaN(value)) return '';
+  if (value <= limits[0]) return 'good';
+  if (value <= limits[1]) return 'warn';
+  return 'poor';
+}
+
+// Number in the card's color, unit as a smaller quiet span
+function setCard(id, key, value) {
+  const el = document.getElementById(id);
+  el.textContent = '';
+  el.classList.remove('good', 'warn', 'poor');
+  const parts = formatCardParts(value);
+  if (!parts) {
+    el.textContent = '--';
+    return;
+  }
+  const rating = rateMetric(key, value);
+  if (rating) el.classList.add(rating);
+  const unit = document.createElement('span');
+  unit.className = 'unit';
+  unit.textContent = parts.unit;
+  el.append(parts.num, unit);
 }
 
 function formatBytes(bytes) {
@@ -44,11 +85,11 @@ function formatBytes(bytes) {
 // --- Empty state ---
 
 function showEmptyState() {
-  document.getElementById('load-time').textContent = '--';
-  document.getElementById('fcp-time').textContent = '--';
-  document.getElementById('lcp-time').textContent = '--';
-  document.getElementById('ttfb-time').textContent = '--';
-  document.getElementById('dcl-time').textContent = '--';
+  setCard('load-time', 'load', null);
+  setCard('fcp-time', 'fcp', null);
+  setCard('lcp-time', 'lcp', null);
+  setCard('ttfb-time', 'ttfb', null);
+  setCard('dcl-time', 'dcl', null);
   document.getElementById('timeline-body').textContent = '';
   document.getElementById('resources-body').textContent = '';
 }
@@ -211,11 +252,11 @@ function renderData(data) {
     const dcl = navigation && typeof navigation.domContentLoaded === 'number' ? navigation.domContentLoaded : null;
 
     // Update metric cards
-    document.getElementById('load-time').textContent = formatCardMs(loadComplete);
-    document.getElementById('fcp-time').textContent = formatCardMs(fcp);
-    document.getElementById('lcp-time').textContent = formatCardMs(lcp);
-    document.getElementById('ttfb-time').textContent = formatCardMs(ttfb);
-    document.getElementById('dcl-time').textContent = formatCardMs(dcl);
+    setCard('load-time', 'load', loadComplete);
+    setCard('fcp-time', 'fcp', fcp);
+    setCard('lcp-time', 'lcp', lcp);
+    setCard('ttfb-time', 'ttfb', ttfb);
+    setCard('dcl-time', 'dcl', dcl);
 
     // Build timeline table
     const timelineBody = document.getElementById('timeline-body');
@@ -239,18 +280,19 @@ function renderData(data) {
         const isSlowest = i === slowestIndex && maxDuration > 0;
         const tr = document.createElement('tr');
         if (isSlowest) tr.className = 'timeline-slowest';
+        else if (duration === 0) tr.className = 'timeline-zero';
 
         const tdPhase = document.createElement('td');
         tdPhase.textContent = phase.phase;
 
         const tdStart = document.createElement('td');
-        tdStart.textContent = formatMs(phase.start);
+        tdStart.textContent = formatNumber(phase.start);
 
         const tdEnd = document.createElement('td');
-        tdEnd.textContent = formatMs(phase.end);
+        tdEnd.textContent = formatNumber(phase.end);
 
         const tdDuration = document.createElement('td');
-        tdDuration.textContent = formatMs(duration);
+        tdDuration.textContent = formatNumber(duration);
 
         tr.append(tdPhase, tdStart, tdEnd, tdDuration);
         timelineBody.appendChild(tr);
@@ -325,7 +367,7 @@ function renderData(data) {
 
         const tdTime = document.createElement('td');
         tdTime.className = 'resource-time' + (isSlow ? ' slow-time' : '');
-        tdTime.textContent = formatMs(resource.duration);
+        tdTime.textContent = formatNumber(resource.duration);
 
         tr.append(tdResource, tdSize, tdTime);
         resourcesBody.appendChild(tr);
