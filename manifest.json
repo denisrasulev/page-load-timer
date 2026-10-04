@@ -23,7 +23,7 @@
   },
   "content_scripts": [{
     "matches": ["http://*/*", "https://*/*"],
-    "exclude_matches": ["https://www.google.com/_/chrome/newtab*"],
+    "exclude_matches": ["*://*/_/chrome/newtab*", "*://*/chrome/newtab*", "*://ntp.msn.com/*"],
     "js": ["shared.js", "content.js"],
     "run_at": "document_start"
   }]
