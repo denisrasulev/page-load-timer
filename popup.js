@@ -75,6 +75,12 @@ function setCard(id, key, value) {
   el.append(parts.num, unit);
 }
 
+// URLs match when equal ignoring the #fragment; an unknown tab URL never matches
+function sameDocumentUrl(dataUrl, tabUrl) {
+  if (typeof dataUrl !== 'string' || typeof tabUrl !== 'string') return false;
+  return dataUrl.split('#')[0] === tabUrl.split('#')[0];
+}
+
 function formatBytes(bytes) {
   if (typeof bytes !== 'number' || !isFinite(bytes) || bytes <= 0) return 'n/a';
   if (bytes < 1024) return bytes + ' B';
@@ -219,10 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const tabId = tabs[0].id;
-    chrome.storage.local.get(['perf_' + tabId], (result) => {
+    const tabUrl = tabs[0].url;
+    chrome.storage.session.get(['perf_' + tabId], (result) => {
       const data = result['perf_' + tabId];
 
-      if (!data) {
+      // Stored data only counts if it was recorded for the page the tab shows now;
+      // otherwise (navigated away, restricted page, SPA route change) re-collect
+      if (!data || !sameDocumentUrl(data.url, tabUrl)) {
         // Try on-demand collection for already-loaded tabs
         chrome.runtime.sendMessage({ action: 'collectNow', tabId: tabId }, (response) => {
           if (chrome.runtime.lastError || !response || !response.success) {
