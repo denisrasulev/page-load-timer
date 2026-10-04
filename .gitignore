@@ -33,3 +33,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Build output
+dist/

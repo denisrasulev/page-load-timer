@@ -4,7 +4,7 @@ A lightweight Chrome extension that measures and displays page load performance 
 
 | Light | Dark | Settings (Light) | Settings (Dark) |
 |:-----:|:----:|:----------------:|:---------------:|
-| ![Light theme](./screens/page-load-screenshot-light.png) | ![Dark theme](./screens/page-load-screenshot-dark.png) | ![Settings light](./screens/page-load-settings-light.png) | ![Settings dark](./screens/page-load-settings-dark.png) |
+| ![Light theme](./assets/screenshots/main-light.png) | ![Dark theme](./assets/screenshots/main-dark.png) | ![Settings light](./assets/screenshots/settings-light.png) | ![Settings dark](./assets/screenshots/settings-dark.png) |
 
 ## Features
 
@@ -65,19 +65,24 @@ popup.js renders on click
 
 ```
 page-load-timer/
-├── icons/                 # Extension icons (16, 32, 48, 128, 512px)
-├── screens/               # README screenshots
+├── icons/                 # Extension icons (16, 32, 48, 128px) — shipped in the package
+├── assets/
+│   ├── screenshots/       # Popup captures used in this README
+│   ├── store/             # Chrome Web Store images (screenshots, promo tile, marquee)
+│   └── source/            # Logo master (512px)
 ├── manifest.json          # Extension config (Manifest V3)
 ├── shared.js              # Shared utilities
 ├── content.js             # Content script (auto-collects on page load)
 ├── collect.js             # On-demand collector (injected for pre-loaded tabs)
 ├── background.js          # Service worker
+├── early.js               # Applies theme and density before the first paint
 ├── popup.html             # Popup UI and styles
 ├── popup.js               # Popup logic
+├── package.sh             # Builds the Web Store zip (runtime files only)
 └── LICENSE
 ```
 
-> `icons/icon512.png` is not referenced in the manifest — it's required for the [Chrome Web Store listing](https://developer.chrome.com/docs/webstore/images#icons).
+Only the files needed at runtime go into the extension package; images in `assets/`, the README and the docs do not. Run `./package.sh` to build `dist/page-load-timer-<version>.zip` for upload to the [Chrome Web Store](https://developer.chrome.com/docs/webstore/images).
 
 ## Permissions
 
