@@ -56,6 +56,8 @@ unzip -l "$OUT" | sed -n '4,$p'
 KEY="${1:-}"
 [ -n "$KEY" ] || exit 0
 [ -f "$KEY" ] || fail "key not found: $KEY"
+grep -q 'BEGIN PUBLIC KEY' "$KEY" && fail "$KEY is the public key; signing needs the private key (BEGIN PRIVATE KEY)"
+grep -q 'PRIVATE KEY' "$KEY" || fail "$KEY does not look like a PEM private key"
 # Chrome only reads PKCS#8; convert an old-style "RSA PRIVATE KEY" on the fly
 if grep -q 'BEGIN RSA PRIVATE KEY' "$KEY"; then
   KEY8=$(mktemp)
