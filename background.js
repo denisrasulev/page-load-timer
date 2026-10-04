@@ -65,6 +65,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // Popup found the tab's domain on the ignore list: drop its data and badge
+  if (request.action === 'clearTabData' && request.tabId != null) {
+    chrome.storage.session.remove('perf_' + request.tabId);
+    chrome.action.setBadgeText({ text: '', tabId: request.tabId });
+    return false;
+  }
+
   // Badge setting changed from popup
   if (request.action === 'badgeSettingChanged' && request.tabId != null) {
     if (!request.showBadge) {

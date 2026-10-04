@@ -103,7 +103,7 @@ function showEmptyState() {
 // --- Settings defaults ---
 const THEME_OPTIONS = ['auto', 'light', 'dark'];
 const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
-const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true };
+const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true, ignoredDomains: [] };
 
 // Read-modify-write helper — not truly atomic, but sufficient for sequential UI interactions
 function updateSetting(key, value) {
@@ -127,6 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const resourcesToggle = document.getElementById('resources-toggle');
   const timelineSection = document.getElementById('timeline-section');
   const resourcesSection = document.getElementById('resources-section');
+  const ignoredInput = document.getElementById('ignored-domains');
+  const ignoredNote = document.getElementById('ignored-note');
 
   function applyTheme(theme) {
     const root = document.documentElement;
@@ -161,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     resourcesToggle.checked = settings.showResources !== false;
     timelineSection.classList.toggle('section-hidden', settings.showTimeline === false);
     resourcesSection.classList.toggle('section-hidden', settings.showResources === false);
+    ignoredInput.value = Array.isArray(settings.ignoredDomains) ? settings.ignoredDomains.join('\n') : '';
   });
 
   // Settings view switching
@@ -217,6 +220,36 @@ document.addEventListener('DOMContentLoaded', () => {
   sectionToggleHandler(timelineToggle, timelineSection, 'showTimeline');
   sectionToggleHandler(resourcesToggle, resourcesSection, 'showResources');
 
+  // Ignored domains: one per line. Save while typing (the popup can close without
+  // a blur/change event), and tidy the text once the field loses focus.
+  function parseDomainList(text) {
+    const seen = new Set();
+    const list = [];
+    text.split('\n').forEach((line) => {
+      const domain = normalizeDomain(line);
+      if (domain && !seen.has(domain)) {
+        seen.add(domain);
+        list.push(domain);
+      }
+    });
+    return list;
+  }
+
+  ignoredInput.addEventListener('input', () => {
+    updateSetting('ignoredDomains', parseDomainList(ignoredInput.value));
+  });
+
+  ignoredInput.addEventListener('change', () => {
+    ignoredInput.value = parseDomainList(ignoredInput.value).join('\n');
+  });
+
+  // Ignored domain: show the note, forget any data and badge for this tab
+  function showIgnoredState(tabId) {
+    showEmptyState();
+    ignoredNote.classList.remove('section-hidden');
+    chrome.runtime.sendMessage({ action: 'clearTabData', tabId: tabId });
+  }
+
   // Load perf data
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs || !tabs[0]) {
@@ -226,24 +259,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tabId = tabs[0].id;
     const tabUrl = tabs[0].url;
-    chrome.storage.session.get(['perf_' + tabId], (result) => {
-      const data = result['perf_' + tabId];
 
-      // Stored data only counts if it was recorded for the page the tab shows now;
-      // otherwise (navigated away, restricted page, SPA route change) re-collect
-      if (!data || !sameDocumentUrl(data.url, tabUrl)) {
-        // Try on-demand collection for already-loaded tabs
-        chrome.runtime.sendMessage({ action: 'collectNow', tabId: tabId }, (response) => {
-          if (chrome.runtime.lastError || !response || !response.success) {
-            showEmptyState();
-            return;
-          }
-          renderData(response.perfData);
-        });
+    chrome.storage.local.get(['settings'], (settingsResult) => {
+      // Non-http tabs and tabs without a readable URL are never "ignored"
+      let hostname = '';
+      try { hostname = new URL(tabUrl).hostname; } catch (e) { /* no URL */ }
+      const ignoredList = settingsResult.settings && settingsResult.settings.ignoredDomains;
+      if (hostname && isIgnoredDomain(hostname, ignoredList)) {
+        showIgnoredState(tabId);
         return;
       }
 
-      renderData(data);
+      chrome.storage.session.get(['perf_' + tabId], (result) => {
+        const data = result['perf_' + tabId];
+
+        // Stored data only counts if it was recorded for the page the tab shows now;
+        // otherwise (navigated away, restricted page, SPA route change) re-collect
+        if (!data || !sameDocumentUrl(data.url, tabUrl)) {
+          // Try on-demand collection for already-loaded tabs
+          chrome.runtime.sendMessage({ action: 'collectNow', tabId: tabId }, (response) => {
+            if (chrome.runtime.lastError || !response || !response.success) {
+              showEmptyState();
+              return;
+            }
+            renderData(response.perfData);
+          });
+          return;
+        }
+
+        renderData(data);
+      });
     });
   });
 });

@@ -14,6 +14,7 @@ A lightweight Chrome extension that measures and displays page load performance 
 - **Badge Indicator** — Color-coded load time on the extension icon (green ≤1s, orange ≤3s, red >3s)
 - **Themes** — Auto (follows OS), Light, and Dark
 - **Density** — Roomy, Default, and Compact layouts
+- **Ignored Domains** — List sites (one per line, subdomains included) where nothing is measured and no badge is shown; after removing a site from the list, reload its page to resume measuring
 - **Settings Persistence** — All preferences saved in `chrome.storage.local`
 
 ## Installation

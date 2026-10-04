@@ -608,6 +608,47 @@
         body.density-compact .ad-bar { padding: 7px 20px 9px; }
         body.density-roomy .ad-bar { padding: 14px 20px 16px; }
 
+        /* Settings: full-width item (label above, control below) */
+        .settings-item.stacked {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .settings-hint {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .settings-textarea {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 72px;
+            resize: vertical;
+            padding: 6px 8px;
+            font-family: 'SF Mono', 'Roboto Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .settings-textarea:focus {
+            border-color: var(--accent-blue);
+        }
+
+        /* Shown under the header when the current tab's domain is ignored */
+        .ignored-note {
+            text-align: center;
+            padding: 6px 0 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
         /* Settings: quiet credit link */
         .settings-label a {
             color: var(--text-secondary);
@@ -628,6 +669,8 @@
             <h2>Page Performance</h2>
             <button id="settings-btn" class="settings-btn" title="Settings">&#9881;</button>
         </header>
+
+        <div id="ignored-note" class="ignored-note section-hidden">Measurement is off for this domain (see Settings)</div>
 
         <!-- Top Metrics Cards -->
         <div id="vitals-section" class="metrics-grid">
@@ -734,6 +777,13 @@
                     <input type="checkbox" id="resources-toggle" checked>
                     <span class="toggle-slider"></span>
                 </label>
+            </li>
+            <li class="settings-item stacked">
+                <div>
+                    <div class="settings-label">Ignored domains (one per line)</div>
+                    <div class="settings-hint">Includes subdomains. Reload a page after removing it from the list.</div>
+                </div>
+                <textarea id="ignored-domains" class="settings-textarea" rows="4" spellcheck="false" placeholder="example.com"></textarea>
             </li>
             <li class="settings-item">
                 <div class="settings-label">Made by <a href="https://denshub.com/en/tools/page-load-timer/" target="_blank" rel="noopener">Den's Hub</a></div>
