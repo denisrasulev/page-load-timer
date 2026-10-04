@@ -23,7 +23,7 @@
   },
   "content_scripts": [{
     "matches": ["http://*/*", "https://*/*"],
-    "exclude_matches": ["*://*/_/chrome/newtab*", "*://*/chrome/newtab*", "*://ntp.msn.com/*"],
+    "exclude_matches": ["*://*/_/chrome/newtab*", "*://*/chrome/newtab*", "*://ntp.msn.com/*", "*://*/search/warmup.html*"],
     "js": ["shared.js", "content.js"],
     "run_at": "document_start"
   }]
