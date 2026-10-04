@@ -646,9 +646,20 @@
            restricted page, no data yet) */
         .status-note {
             text-align: center;
-            padding: 6px 0 12px;
-            font-size: 12px;
-            color: var(--text-secondary);
+            padding: 28px 12px 32px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        body.density-compact .status-note { padding: 18px 12px 22px; }
+        body.density-roomy .status-note { padding: 36px 12px 40px; }
+
+        /* With a status message there is nothing to show in the cards and tables */
+        #main-view.has-status .metrics-grid,
+        #main-view.has-status .table-container {
+            display: none;
         }
 
         /* Settings: quiet credit link */

@@ -202,11 +202,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cacheUi('density', DENSITY_OPTIONS.includes(density) ? density : 'default');
   }
 
-  // Empty cards plus a one-line explanation under the header
+  // Nothing to measure: replace the empty cards and tables with one clear message
   function showStatus(text) {
     showEmptyState();
     statusNote.textContent = text;
     statusNote.classList.remove('section-hidden');
+    mainView.classList.add('has-status');
   }
 
   // Load settings and set toggle/radio state
@@ -354,11 +355,28 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        // Show the stored snapshot instantly, then refresh it: LCP and late-loading
+        // resources usually arrive after the load event the snapshot was taken at
         renderData(data);
+        chrome.runtime.sendMessage({ action: 'collectNow', tabId: tabId }, (response) => {
+          if (chrome.runtime.lastError || !response || !response.success) return;
+          if (dataSignature(response.perfData) !== dataSignature(data)) {
+            renderData(response.perfData);
+          }
+        });
       });
     });
   });
 });
+
+// What the popup would show differently if it re-rendered: vitals and the resource count
+function dataSignature(data) {
+  const resources = data && data.resources ? data.resources : {};
+  const count = Object.keys(resources).reduce((sum, key) => {
+    return sum + (Array.isArray(resources[key]) ? resources[key].length : 0);
+  }, 0);
+  return JSON.stringify([data && data.vitals, count]);
+}
 
 // --- Render ---
 
