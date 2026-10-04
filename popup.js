@@ -3,6 +3,27 @@ const SLOW_RESOURCE_THRESHOLD_MS = 500;
 const RESOURCE_NAME_MAX_LENGTH = 35;
 const TOP_RESOURCES_COUNT = 10;
 
+// Ad bar entries (referral links plus a review prompt); one is picked at
+// random each time the popup opens. Keep every url on https.
+const ADS = [
+  { text: 'Enjoying Page Load Timer? Leave a review', url: 'https://chromewebstore.google.com/detail/page-load-timer/mnohinnpeihinoeepiphjcgpknehahlf/reviews' },
+  { text: 'Scheduling made simple with Cal.com', url: 'https://refer.cal.com/runmyapp' },
+  { text: 'Realistic AI voices from ElevenLabs', url: 'https://try.elevenlabs.io/p7u4h15oa5i8' },
+  { text: 'Private, ad-free email with Fastmail', url: 'https://join.fastmail.com/b06ff20da5c9' },
+  { text: 'Cloud servers from Hetzner', url: 'https://hetzner.cloud/?ref=UM0SyCaAtmGl' },
+  { text: 'Block trackers and malware with NextDNS', url: 'https://nextdns.io/?from=wrqe7pab' },
+  { text: 'Proxies and web scraping tools by Decodo', url: 'https://dashboard.decodo.com/register?referral_code=4b262fd31191545502710bd59b13938f77e766f5' }
+];
+
+function showRandomAd() {
+  const ad = ADS[Math.floor(Math.random() * ADS.length)];
+  const link = document.getElementById('ad-link');
+  const text = document.getElementById('ad-text');
+  if (!ad || !link || !text || !ad.url.startsWith('https://')) return;
+  link.href = ad.url;
+  text.textContent = ad.text;
+}
+
 const BADGE_CLASS_ALLOWLIST = new Set(['js', 'css', 'img', 'xhr', 'font', 'other']);
 const TYPE_TO_BADGE = {
   scripts:     { cls: 'js',    text: 'JS' },
@@ -110,6 +131,8 @@ function updateSetting(key, value) {
 // --- Init ---
 
 document.addEventListener('DOMContentLoaded', () => {
+  showRandomAd();
+
   const mainView = document.getElementById('main-view');
   const settingsView = document.getElementById('settings-view');
   const settingsBtn = document.getElementById('settings-btn');

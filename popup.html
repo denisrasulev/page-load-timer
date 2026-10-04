@@ -558,7 +558,7 @@
             position: sticky;
             bottom: 0;
             display: flex;
-            align-items: center;
+            align-items: baseline;
             gap: 8px;
             padding: 10px 20px 12px;
             border-top: 1px solid var(--border-color);
@@ -603,6 +603,7 @@
             width: 13px;
             height: 13px;
             flex-shrink: 0;
+            align-self: center;
         }
 
         body.density-compact .ad-bar { padding: 7px 20px 9px; }
@@ -744,8 +745,8 @@
 
     <footer class="ad-bar">
         <span class="ad-tag">Ad</span>
-        <a class="ad-link" href="https://chromewebstore.google.com/detail/page-load-timer/mnohinnpeihinoeepiphjcgpknehahlf/reviews" target="_blank" rel="noopener">
-            <span class="ad-text">Enjoying Page Load Timer? Leave a review</span>
+        <a class="ad-link" id="ad-link" href="https://chromewebstore.google.com/detail/page-load-timer/mnohinnpeihinoeepiphjcgpknehahlf/reviews" target="_blank" rel="noopener">
+            <span class="ad-text" id="ad-text">Enjoying Page Load Timer? Leave a review</span>
             <svg class="ad-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/><path d="M11 13l9-9"/><path d="M15 4h5v5"/></svg>
         </a>
     </footer>
