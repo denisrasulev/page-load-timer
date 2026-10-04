@@ -11,7 +11,15 @@ function getBadgeColor(loadTimeMs) {
   return BADGE_COLOR_SLOW;
 }
 
+// Pages that are not in a real browser tab (prerendered pages, background
+// pages) report tab ID -1 (chrome.tabs.TAB_ID_NONE); badges and per-tab data
+// only make sense for real tabs. Tab ID 0 is valid.
+function isRealTab(tabId) {
+  return Number.isInteger(tabId) && tabId >= 0;
+}
+
 function updateBadge(perfData, tabId) {
+  if (!isRealTab(tabId)) return;
   if (!perfData.navigation || perfData.navigation.loadComplete == null) return;
 
   chrome.storage.local.get(['settings'], (result) => {
@@ -34,7 +42,7 @@ function updateBadge(perfData, tabId) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // On-demand collection triggered by popup
-  if (request.action === 'collectNow' && request.tabId) {
+  if (request.action === 'collectNow' && isRealTab(request.tabId)) {
     // Inject shared utilities and collector as files to avoid func: serialization issues
     chrome.scripting.executeScript({
       target: { tabId: request.tabId },
@@ -57,8 +65,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // Data sent from content script
-  if (request.action === 'perfData' && request.perfData && sender.tab && sender.tab.id) {
-    const tabId = sender.tab.id;
+  if (request.action === 'perfData' && request.perfData) {
+    const tabId = sender.tab ? sender.tab.id : undefined;
+    // Not a real tab (prerender, background page): nothing to store or badge
+    if (!isRealTab(tabId)) {
+      sendResponse({ success: false });
+      return false;
+    }
     const perfData = request.perfData;
     chrome.storage.session.set({ ['perf_' + tabId]: perfData });
     updateBadge(perfData, tabId);
@@ -67,14 +80,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // Popup found the tab's domain on the ignore list: drop its data and badge
-  if (request.action === 'clearTabData' && request.tabId != null) {
+  if (request.action === 'clearTabData' && isRealTab(request.tabId)) {
     chrome.storage.session.remove('perf_' + request.tabId);
     chrome.action.setBadgeText({ text: '', tabId: request.tabId });
     return false;
   }
 
   // Badge setting changed from popup
-  if (request.action === 'badgeSettingChanged' && request.tabId != null) {
+  if (request.action === 'badgeSettingChanged' && isRealTab(request.tabId)) {
     if (!request.showBadge) {
       chrome.action.setBadgeText({ text: '', tabId: request.tabId });
     } else {
