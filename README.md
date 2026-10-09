@@ -25,6 +25,10 @@ This is the **main and recommended** way to install the extension.
 
 [Install from Chrome Web Store](https://chromewebstore.google.com/detail/page-load-timer/mnohinnpeihinoeepiphjcgpknehahlf)
 
+### Microsoft Edge Add-ons
+
+[Install from Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/page-load-timer/ckihkglbjnijbcammpogceejcficgpog)
+
 ### From source (developer mode, optional)
 
 1. Clone this repository:
