@@ -198,6 +198,17 @@ function updateSetting(key, value) {
 
 document.addEventListener('DOMContentLoaded', () => {
   showRandomAd();
+  try {
+    document.getElementById('about-version').textContent = 'v' + chrome.runtime.getManifest().version;
+  } catch (e) { /* no manifest access: the line just shows no version */ }
+  // Tell the site which browser the click came from (utm_content), nothing else
+  ['about-author'].forEach((id) => {
+    const link = document.getElementById(id);
+    if (!link) return;
+    const url = new URL(link.href);
+    url.searchParams.set('utm_content', isEdge() ? 'edge' : 'chrome');
+    link.href = url.toString();
+  });
   document.getElementById('th-tp').addEventListener('click', () => {
     thirdPartyOnly = !thirdPartyOnly;
     updateResourceHeaders();
@@ -407,12 +418,12 @@ function dataSignature(data) {
 
 // --- Render ---
 
-// "84 requests · 38% third-party · 2.1 MB" in the footer of the resources table
+// "Page requested 84 resources" and "32 are third-party (38%)" in the footer of the resources table
 function renderSummary(summary) {
   const el = document.getElementById('summary-cell');
   el.textContent = '';
   const ok = summary && Number.isFinite(summary.requests) && summary.requests > 0 &&
-    Number.isFinite(summary.bytes) && Number.isFinite(summary.thirdParty);
+    Number.isFinite(summary.thirdParty);
   if (!ok) return;
   const part = (strong, rest) => {
     const span = document.createElement('span');
@@ -422,15 +433,21 @@ function renderSummary(summary) {
     return span;
   };
   const share = Math.round((summary.thirdParty / summary.requests) * 100);
+  const total = document.createElement('span');
+  const count = document.createElement('b');
+  count.textContent = summary.requests.toLocaleString();
+  total.append('Page requested ', count, summary.requests === 1 ? ' resource' : ' resources');
+  // Same blue dot as the 3P column, so the two read as the same thing
+  const other = part(summary.thirdParty.toLocaleString(), ' are third-party (' + share + '%)');
+  const dot = document.createElement('span');
+  dot.className = 'tp-dot';
+  other.prepend(dot);
   const row = document.createElement('div');
   row.className = 'summary-flex';
-  row.append(
-    part(summary.requests.toLocaleString(), summary.requests === 1 ? ' request' : ' requests'),
-    part(share + '%', ' third-party'),
-    part(summary.bytes > 0 ? formatBytes(summary.bytes) : 'n/a', '')
-  );
+  row.append(total, other);
   el.appendChild(row);
-  el.title = 'Size counts only responses the browser exposes. Third-party share is by request count.';
+  el.title = 'Resources the page requested while it loaded: scripts, styles, images, fonts and fetch calls. ' +
+    'Third-party means a different site than the page.';
 }
 
 // Session-only filter for the Slowest Resources table
