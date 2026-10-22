@@ -6,7 +6,7 @@ const TOP_RESOURCES_COUNT = 10; // must be <= MAX_RESOURCES_PER_TYPE in shared.j
 // Ad bar entries (referral links plus a review prompt); one is picked at
 // random each time the popup opens. Keep every url on https.
 const ADS = [
-  { text: 'Enjoying Page Load Timer? Leave a review', url: 'https://chromewebstore.google.com/detail/page-load-timer/mnohinnpeihinoeepiphjcgpknehahlf/reviews' },
+  { text: 'Enjoying Page Load Timer? Leave a review', url: 'https://chromewebstore.google.com/detail/page-load-timer/mnohinnpeihinoeepiphjcgpknehahlf/reviews', edgeUrl: 'https://microsoftedge.microsoft.com/addons/detail/page-load-timer/ckihkglbjnijbcammpogceejcficgpog' },
   { text: 'Scheduling made simple with Cal.com', url: 'https://refer.cal.com/runmyapp' },
   { text: 'Realistic AI voices from ElevenLabs', url: 'https://try.elevenlabs.io/p7u4h15oa5i8' },
   { text: 'Private, ad-free email with Fastmail', url: 'https://join.fastmail.com/b06ff20da5c9' },
@@ -15,12 +15,19 @@ const ADS = [
   { text: 'Proxies and web scraping tools by Decodo', url: 'https://dashboard.decodo.com/register?referral_code=4b262fd31191545502710bd59b13938f77e766f5' }
 ];
 
+// The review link points to the Chrome Web Store, so Edge gets its own URL.
+function isEdge() {
+  const brands = navigator.userAgentData?.brands;
+  if (brands) return brands.some((b) => b.brand === 'Microsoft Edge');
+  return /\bEdg\//.test(navigator.userAgent);
+}
+
 function showRandomAd() {
   const ad = ADS[Math.floor(Math.random() * ADS.length)];
   const link = document.getElementById('ad-link');
   const text = document.getElementById('ad-text');
   if (!ad || !link || !text || !ad.url.startsWith('https://')) return;
-  link.href = ad.url;
+  link.href = (isEdge() && ad.edgeUrl) || ad.url;
   text.textContent = ad.text;
 }
 
