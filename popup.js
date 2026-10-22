@@ -145,12 +145,13 @@ function cacheUi(key, value) {
   } catch (e) { /* storage unavailable: the cache is only an optimization */ }
 }
 
-// Pages the extension cannot run on (browser pages, the Web Store, non-http)
+// Pages the extension cannot run on (browser pages, the Chrome and Edge stores, non-http)
 function isRestrictedPage(url) {
   if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return true;
   try {
     const u = new URL(url);
     return u.hostname === 'chromewebstore.google.com' ||
+      u.hostname === 'microsoftedge.microsoft.com' ||
       (u.hostname === 'chrome.google.com' && u.pathname.startsWith('/webstore'));
   } catch (e) {
     return true;
