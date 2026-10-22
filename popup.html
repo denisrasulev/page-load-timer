@@ -405,15 +405,34 @@
         .badge.font { background-color: var(--badge-font-bg); color: var(--badge-font-fg); }
         .badge.other { background-color: var(--badge-other-bg); color: var(--badge-other-fg); }
 
-        .third-party {
-            flex-shrink: 0;
-            margin-left: 6px;
-            font-size: 9px;
-            font-weight: 600;
+        /* Third-party rows: a stripe on the left edge, no width taken from the name */
+        .resources-table tr.third-party-row td:first-child {
+            box-shadow: inset 3px 0 0 var(--text-accent);
+        }
+
+        .tp-filter {
+            float: right;
+            font: inherit;
+            font-size: 10px;
+            text-transform: none;
+            letter-spacing: 0;
             color: var(--text-secondary);
-            border: 1px solid currentColor;
-            border-radius: 3px;
-            padding: 0 3px;
+            background: transparent;
+            border: 1px solid var(--border-strong);
+            border-radius: 999px;
+            padding: 0 8px;
+            cursor: pointer;
+        }
+
+        .tp-filter[aria-pressed="true"] {
+            color: var(--text-accent);
+            border-color: var(--text-accent);
+            background: var(--bg-accent);
+        }
+
+        .resources-empty {
+            text-align: center;
+            color: var(--text-secondary);
         }
 
         .resource-row {
@@ -747,7 +766,7 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Slowest Resources</th>
+                        <th>Slowest Resources <button type="button" id="tp-filter" class="tp-filter" aria-pressed="false" title="Show only resources from other domains">3rd party</button></th>
                         <th class="th-right">Size</th>
                         <th class="th-right">Time <span class="unit">(ms)</span></th>
                     </tr>

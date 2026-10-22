@@ -174,6 +174,14 @@ function updateSetting(key, value) {
 
 document.addEventListener('DOMContentLoaded', () => {
   showRandomAd();
+  const tpFilter = document.getElementById('tp-filter');
+  if (tpFilter) {
+    tpFilter.addEventListener('click', () => {
+      thirdPartyOnly = !thirdPartyOnly;
+      tpFilter.setAttribute('aria-pressed', String(thirdPartyOnly));
+      if (lastRenderedData) renderData(lastRenderedData);
+    });
+  }
 
   const mainView = document.getElementById('main-view');
   const settingsView = document.getElementById('settings-view');
@@ -392,7 +400,12 @@ function dataSignature(data) {
 
 // --- Render ---
 
+// Session-only filter for the Slowest Resources table
+let thirdPartyOnly = false;
+let lastRenderedData = null;
+
 function renderData(data) {
+  lastRenderedData = data;
   try {
     const navigation = data && data.navigation ? data.navigation : null;
     const vitals = data && data.vitals ? data.vitals : null;
@@ -473,7 +486,18 @@ function renderData(data) {
       });
 
       allResources.sort((a, b) => b.duration - a.duration);
-      const topResources = allResources.slice(0, TOP_RESOURCES_COUNT);
+      const shown = thirdPartyOnly ? allResources.filter(r => r.thirdParty === true) : allResources;
+      const topResources = shown.slice(0, TOP_RESOURCES_COUNT);
+
+      if (thirdPartyOnly && topResources.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.className = 'resources-empty';
+        td.textContent = 'No third-party resources among the slowest.';
+        tr.appendChild(td);
+        resourcesBody.appendChild(tr);
+      }
 
       topResources.forEach(resource => {
         const isSlow = resource.duration > SLOW_RESOURCE_THRESHOLD_MS;
@@ -486,6 +510,7 @@ function renderData(data) {
         const badgeClass = BADGE_CLASS_ALLOWLIST.has(resource.badgeClass) ? resource.badgeClass : 'other';
 
         const tr = document.createElement('tr');
+        if (resource.thirdParty === true) tr.className = 'third-party-row';
 
         const tdResource = document.createElement('td');
         const resourceRow = document.createElement('div');
@@ -501,13 +526,6 @@ function renderData(data) {
         nameSpan.textContent = displayName;
 
         resourceRow.append(badgeSpan, nameSpan);
-        if (resource.thirdParty === true) {
-          const tpSpan = document.createElement('span');
-          tpSpan.className = 'third-party';
-          tpSpan.title = 'Loaded from another domain';
-          tpSpan.textContent = '3P';
-          resourceRow.appendChild(tpSpan);
-        }
         tdResource.appendChild(resourceRow);
 
         const tdSize = document.createElement('td');
