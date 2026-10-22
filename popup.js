@@ -510,7 +510,12 @@ function renderData(data) {
         const badgeClass = BADGE_CLASS_ALLOWLIST.has(resource.badgeClass) ? resource.badgeClass : 'other';
 
         const tr = document.createElement('tr');
-        if (resource.thirdParty === true) tr.className = 'third-party-row';
+        let thirdPartyNote = '';
+        if (resource.thirdParty === true) {
+          tr.className = 'third-party-row';
+          try { thirdPartyNote = 'Third-party: ' + new URL(resource.url).hostname; } catch (e) { thirdPartyNote = 'Third-party'; }
+          tr.title = thirdPartyNote;
+        }
 
         const tdResource = document.createElement('td');
         const resourceRow = document.createElement('div');
@@ -522,7 +527,7 @@ function renderData(data) {
 
         const nameSpan = document.createElement('span');
         nameSpan.className = 'resource-name';
-        nameSpan.title = resourceName;
+        nameSpan.title = thirdPartyNote ? resourceName + '\n' + thirdPartyNote : resourceName;
         nameSpan.textContent = displayName;
 
         resourceRow.append(badgeSpan, nameSpan);
