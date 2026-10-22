@@ -1,7 +1,8 @@
 // On-demand performance collection — injected into the page by background.js
 // Depends on shared.js (getNavigationTiming, groupResources) being loaded first
 (function() {
-  if (typeof getNavigationTiming !== 'function' || typeof groupResources !== 'function') {
+  if (typeof getNavigationTiming !== 'function' || typeof groupResources !== 'function' ||
+      typeof createClsTracker !== 'function' || typeof summarizeResources !== 'function') {
     console.warn('Page Load Timer: shared.js not loaded — cannot collect performance data');
     return null;
   }
@@ -30,6 +31,10 @@
     } catch (e) { /* paint entries may not be available */ }
   }
 
+  if (typeof cached.cls === 'number' && isFinite(cached.cls) && cached.cls >= 0) {
+    vitals.cls = cached.cls;
+  }
+
   // getNavigationTiming and groupResources provided by shared.js
   function build() {
     return {
@@ -37,11 +42,13 @@
       timestamp: new Date().toISOString(),
       navigation: getNavigationTiming(nav),
       vitals: vitals,
-      resources: groupResources(performance.getEntriesByType('resource'))
+      resources: groupResources(performance.getEntriesByType('resource')),
+      summary: summarizeResources(performance.getEntriesByType('resource'))
     };
   }
 
-  if (typeof cached.lcp === 'number' && isFinite(cached.lcp) && cached.lcp >= 0) {
+  const hasCachedLcp = typeof cached.lcp === 'number' && isFinite(cached.lcp) && cached.lcp >= 0;
+  if (hasCachedLcp && typeof vitals.cls === 'number') {
     vitals.lcp = cached.lcp;
     return build();
   }
@@ -53,6 +60,8 @@
   const LCP_WAIT_MS = 200;
   return new Promise((resolve) => {
     let observer = null;
+    let clsObserver = null;
+    const clsTracker = createClsTracker();
     let timer = null;
     let done = false;
 
@@ -61,8 +70,26 @@
       done = true;
       clearTimeout(timer);
       if (observer) observer.disconnect();
+      if (clsObserver) {
+        clsObserver.takeRecords().forEach((entry) => clsTracker.add(entry));
+        clsObserver.disconnect();
+        if (typeof vitals.cls !== 'number') vitals.cls = clsTracker.value;
+      }
       if (typeof lcp === 'number') vitals.lcp = lcp;
       resolve(build());
+    }
+
+    try {
+      clsObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => clsTracker.add(entry));
+      });
+      clsObserver.observe({ type: 'layout-shift', buffered: true });
+    } catch (e) { clsObserver = null; /* CLS stays "--" */ }
+
+    if (hasCachedLcp) {
+      vitals.lcp = cached.lcp;
+      timer = setTimeout(() => finish(), LCP_WAIT_MS);
+      return;
     }
 
     try {

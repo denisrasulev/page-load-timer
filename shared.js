@@ -71,6 +71,43 @@
     }
   }
 
+  // CLS as Google defines it: the largest "session window" of layout shifts
+  // (gaps under 1 s, windows capped at 5 s), ignoring shifts right after input
+  function createClsTracker() {
+    let value = 0;
+    let sessionValue = 0;
+    let firstTime = 0;
+    let lastTime = 0;
+    return {
+      add(entry) {
+        if (!entry || entry.hadRecentInput || typeof entry.value !== 'number') return;
+        if (sessionValue && entry.startTime - lastTime < 1000 && entry.startTime - firstTime < 5000) {
+          sessionValue += entry.value;
+        } else {
+          sessionValue = entry.value;
+          firstTime = entry.startTime;
+        }
+        lastTime = entry.startTime;
+        if (sessionValue > value) value = sessionValue;
+      },
+      get value() { return Math.round(value * 1000) / 1000; }
+    };
+  }
+
+  // Totals for the whole page; groupResources keeps only the slowest entries.
+  // Sizes of cross-origin responses are hidden by the browser unless the server
+  // sends Timing-Allow-Origin, so bytes are a lower bound.
+  function summarizeResources(resources) {
+    const pageHost = location.hostname;
+    let bytes = 0;
+    let thirdParty = 0;
+    resources.forEach((resource) => {
+      bytes += resource.transferSize || resource.encodedBodySize || 0;
+      if (isThirdParty(resource.name, pageHost)) thirdParty++;
+    });
+    return { requests: resources.length, bytes: bytes, thirdParty: thirdParty };
+  }
+
   function groupResources(resources) {
     const pageHost = location.hostname;
     const grouped = {
@@ -154,4 +191,6 @@
   window.cleanResourceName = cleanResourceName;
   window.getNavigationTiming = getNavigationTiming;
   window.groupResources = groupResources;
+  window.createClsTracker = createClsTracker;
+  window.summarizeResources = summarizeResources;
 })();

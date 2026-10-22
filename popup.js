@@ -49,7 +49,8 @@ const METRIC_THRESHOLDS = {
   fcp:  [1800, 3000],
   lcp:  [2500, 4000],
   ttfb: [800, 1800],
-  dcl:  [1000, 3000]
+  dcl:  [1000, 3000],
+  cls:  [0.1, 0.25]   // unitless layout-shift score
 };
 
 // --- Helpers ---
@@ -90,17 +91,23 @@ function setCard(id, key, value) {
   const el = document.getElementById(id);
   el.textContent = '';
   el.classList.remove('good', 'warn', 'poor');
-  const parts = formatCardParts(value);
+  // CLS is a unitless score, not a duration
+  const parts = key === 'cls'
+    ? (typeof value === 'number' && isFinite(value) ? { num: value.toFixed(2), unit: '' } : null)
+    : formatCardParts(value);
   if (!parts) {
     el.textContent = '--';
     return;
   }
   const rating = rateMetric(key, value);
   if (rating) el.classList.add(rating);
-  const unit = document.createElement('span');
-  unit.className = 'unit';
-  unit.textContent = parts.unit;
-  el.append(parts.num, unit);
+  el.append(parts.num);
+  if (parts.unit) {
+    const unit = document.createElement('span');
+    unit.className = 'unit';
+    unit.textContent = parts.unit;
+    el.append(unit);
+  }
 }
 
 // URLs match when equal ignoring the #fragment; an unknown tab URL never matches
@@ -124,6 +131,8 @@ function showEmptyState() {
   setCard('lcp-time', 'lcp', null);
   setCard('ttfb-time', 'ttfb', null);
   setCard('dcl-time', 'dcl', null);
+  setCard('cls-time', 'cls', null);
+  document.getElementById('summary-section').textContent = '';
   document.getElementById('timeline-body').textContent = '';
   document.getElementById('resources-body').textContent = '';
 }
@@ -131,7 +140,7 @@ function showEmptyState() {
 // --- Settings defaults ---
 const THEME_OPTIONS = ['auto', 'light', 'dark'];
 const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
-const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true, ignoredDomains: [] };
+const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true, showSummary: true, ignoredDomains: [] };
 
 // Remember theme and density in localStorage so early.js can apply them before
 // the first paint (chrome.storage is asynchronous and arrives too late)
@@ -192,6 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const densitySelect = document.getElementById('density-select');
   const timelineToggle = document.getElementById('timeline-toggle');
   const resourcesToggle = document.getElementById('resources-toggle');
+  const summaryToggle = document.getElementById('summary-toggle');
+  const summarySection = document.getElementById('summary-section');
   const timelineSection = document.getElementById('timeline-section');
   const resourcesSection = document.getElementById('resources-section');
   const ignoredInput = document.getElementById('ignored-domains');
@@ -236,6 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const density = DENSITY_OPTIONS.includes(settings.density) ? settings.density : 'default';
     densitySelect.value = density;
     applyDensity(density);
+    summaryToggle.checked = settings.showSummary !== false;
+    summarySection.classList.toggle('section-hidden', settings.showSummary === false);
     timelineToggle.checked = settings.showTimeline !== false;
     resourcesToggle.checked = settings.showResources !== false;
     timelineSection.classList.toggle('section-hidden', settings.showTimeline === false);
@@ -294,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  sectionToggleHandler(summaryToggle, summarySection, 'showSummary');
   sectionToggleHandler(timelineToggle, timelineSection, 'showTimeline');
   sectionToggleHandler(resourcesToggle, resourcesSection, 'showResources');
 
@@ -400,6 +414,29 @@ function dataSignature(data) {
 
 // --- Render ---
 
+// "84 requests · 2.1 MB · 38% third-party" under the metric cards
+function renderSummary(summary) {
+  const el = document.getElementById('summary-section');
+  el.textContent = '';
+  const ok = summary && Number.isFinite(summary.requests) && summary.requests > 0 &&
+    Number.isFinite(summary.bytes) && Number.isFinite(summary.thirdParty);
+  if (!ok) return;
+  const part = (strong, rest) => {
+    const span = document.createElement('span');
+    const b = document.createElement('b');
+    b.textContent = strong;
+    span.append(b, rest);
+    return span;
+  };
+  const share = Math.round((summary.thirdParty / summary.requests) * 100);
+  el.append(
+    part(summary.requests.toLocaleString(), summary.requests === 1 ? ' request' : ' requests'),
+    part(summary.bytes > 0 ? formatBytes(summary.bytes) : 'n/a', ''),
+    part(share + '%', ' third-party')
+  );
+  el.title = 'Size counts only responses the browser exposes. Third-party share is by request count.';
+}
+
 // Session-only filter for the Slowest Resources table
 let thirdPartyOnly = false;
 let lastRenderedData = null;
@@ -421,6 +458,8 @@ function renderData(data) {
     setCard('lcp-time', 'lcp', lcp);
     setCard('ttfb-time', 'ttfb', ttfb);
     setCard('dcl-time', 'dcl', dcl);
+    setCard('cls-time', 'cls', vitals && typeof vitals.cls === 'number' ? vitals.cls : null);
+    renderSummary(data && data.summary);
 
     // Build timeline table
     const timelineBody = document.getElementById('timeline-body');

@@ -16,6 +16,7 @@
   // read), so they are kept here to be shut down if this domain is ignored
   let fcpObserver = null;
   let lcpObserver = null;
+  let clsObserver = null;
 
   // Resolves true when the user's ignore list covers this page's host. Anything
   // that goes wrong reading settings counts as "not ignored".
@@ -28,6 +29,7 @@
         if (ignored) {
           if (fcpObserver) fcpObserver.disconnect();
           if (lcpObserver) lcpObserver.disconnect();
+          if (clsObserver) clsObserver.disconnect();
           delete window.__plt_vitals_c9e2;
         }
         resolve(!!ignored);
@@ -61,6 +63,19 @@
     });
     lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
   } catch (e) { /* browser may not support LCP observer */ }
+
+  // Set up CLS observer: starts at 0 so a page with no shifts reports 0, not "--"
+  try {
+    const clsTracker = createClsTracker();
+    clsObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) clsTracker.add(entry);
+      vitals.cls = clsTracker.value;
+      window.__plt_vitals_c9e2 = { ...vitals };
+    });
+    clsObserver.observe({ type: 'layout-shift', buffered: true });
+    vitals.cls = 0;
+    window.__plt_vitals_c9e2 = { ...vitals };
+  } catch (e) { /* browser may not support layout-shift observer */ }
 
   window.addEventListener('load', () => {
     let retries = 0;
@@ -98,7 +113,8 @@
       timestamp: new Date().toISOString(),
       navigation: getNavigationTiming(nav),
       vitals: { ...vitals },
-      resources: getResourceTiming()
+      resources: getResourceTiming(),
+      summary: summarizeResources(performance.getEntriesByType('resource'))
     };
 
     // Send data to background script which stores it per tab ID and updates badge

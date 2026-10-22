@@ -238,9 +238,31 @@
         /* Metrics Grid */
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-bottom: 16px;
+        }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin: -4px 0 16px;
+            padding: 8px 12px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .summary-line:empty {
+            display: none;
+        }
+
+        .summary-line b {
+            color: var(--text-primary);
+            font-weight: 600;
         }
 
         .metric-card {
@@ -696,6 +718,7 @@
 
         /* With a status message there is nothing to show in the cards and tables */
         #main-view.has-status .metrics-grid,
+        #main-view.has-status .summary-line,
         #main-view.has-status .table-container {
             display: none;
         }
@@ -746,7 +769,14 @@
                 <div class="metric-label">DCL</div>
                 <div class="metric-value" id="dcl-time">--</div>
             </div>
+            <div class="metric-card">
+                <div class="metric-label">CLS</div>
+                <div class="metric-value" id="cls-time">--</div>
+            </div>
         </div>
+
+        <!-- Page summary -->
+        <div id="summary-section" class="summary-line"></div>
 
         <!-- Load Timeline -->
         <div id="timeline-section" class="table-container section-gap">
@@ -813,6 +843,13 @@
                 <div class="settings-label">Show load time on the icon</div>
                 <label class="toggle">
                     <input type="checkbox" id="badge-toggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </li>
+            <li class="settings-item">
+                <div class="settings-label">Show page summary</div>
+                <label class="toggle">
+                    <input type="checkbox" id="summary-toggle" checked>
                     <span class="toggle-slider"></span>
                 </label>
             </li>
