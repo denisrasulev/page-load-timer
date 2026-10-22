@@ -1,7 +1,7 @@
 // --- Constants ---
 const SLOW_RESOURCE_THRESHOLD_MS = 500;
-const RESOURCE_NAME_MAX_LENGTH = 35;
-const TOP_RESOURCES_COUNT = 10; // must be <= MAX_RESOURCES_PER_TYPE in shared.js
+const VISIBLE_RESOURCE_ROWS = 8; // rows visible before the table scrolls
+const TOP_RESOURCES_COUNT = 20;  // must be <= MAX_RESOURCES_PER_TYPE in shared.js
 
 // Ad bar entries (referral links plus a review prompt); one is picked at
 // random each time the popup opens. Keep every url on https.
@@ -86,28 +86,43 @@ function rateMetric(key, value) {
   return 'poor';
 }
 
-// Number in the card's color, unit as a smaller quiet span
+const RATING_WORDS = { good: 'good', warn: 'needs improvement', poor: 'poor' };
+
+// Number in the card's color. The unit lives in the label ("FCP (ms)"), so the
+// label switches to "(s)" when the value is shown in seconds. The rating is spoken
+// in aria-label and named in the tooltip.
 function setCard(id, key, value) {
   const el = document.getElementById(id);
+  const card = el.parentElement;
+  const label = el.previousElementSibling;
   el.textContent = '';
   el.classList.remove('good', 'warn', 'poor');
   // CLS is a unitless score, not a duration
   const parts = key === 'cls'
     ? (typeof value === 'number' && isFinite(value) ? { num: value.toFixed(2), unit: '' } : null)
     : formatCardParts(value);
+  if (label && label.hasAttribute('data-timed')) {
+    const unit = document.createElement('span');
+    unit.className = 'label-unit';
+    unit.textContent = '(' + (parts ? parts.unit : 'ms') + ')';
+    label.textContent = label.dataset.label + ' ';
+    label.append(unit);
+  }
+  if (!card.dataset.desc) card.dataset.desc = card.title || '';
+  const name = (label && (label.dataset.label || label.textContent)) || key;
   if (!parts) {
     el.textContent = '--';
+    card.title = card.dataset.desc;
+    card.setAttribute('aria-label', name + ': no data');
     return;
   }
   const rating = rateMetric(key, value);
   if (rating) el.classList.add(rating);
-  el.append(parts.num);
-  if (parts.unit) {
-    const unit = document.createElement('span');
-    unit.className = 'unit';
-    unit.textContent = parts.unit;
-    el.append(unit);
-  }
+  el.textContent = parts.num;
+  const word = RATING_WORDS[rating] || '';
+  const unitWord = parts.unit === 'ms' ? ' milliseconds' : parts.unit === 's' ? ' seconds' : '';
+  card.setAttribute('aria-label', name + ' ' + parts.num + unitWord + (word ? ', ' + word : ''));
+  card.title = (word ? 'Rating: ' + word + '. ' : '') + card.dataset.desc;
 }
 
 // URLs match when equal ignoring the #fragment; an unknown tab URL never matches
@@ -119,7 +134,8 @@ function sameDocumentUrl(dataUrl, tabUrl) {
 function formatBytes(bytes) {
   if (typeof bytes !== 'number' || !isFinite(bytes) || bytes <= 0) return 'n/a';
   if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  // MB from 1000 KB on, so the longest string is "999.9 KB" and fits the narrow column
+  if (bytes < 1000 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
@@ -132,17 +148,16 @@ function showEmptyState() {
   setCard('ttfb-time', 'ttfb', null);
   setCard('dcl-time', 'dcl', null);
   setCard('cls-time', 'cls', null);
-  document.getElementById('summary-section').textContent = '';
+  document.getElementById('summary-cell').textContent = '';
   document.getElementById('timeline-body').textContent = '';
   document.getElementById('resources-body').textContent = '';
 }
 
 // --- Settings defaults ---
 const THEME_OPTIONS = ['auto', 'light', 'dark'];
-const DENSITY_OPTIONS = ['roomy', 'default', 'compact'];
-const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', density: 'default', showTimeline: true, showResources: true, showSummary: true, ignoredDomains: [] };
+const DEFAULT_SETTINGS = { showBadge: true, theme: 'auto', showTimeline: true, showResources: true, showSummary: true, ignoredDomains: [] };
 
-// Remember theme and density in localStorage so early.js can apply them before
+// Remember the theme in localStorage so early.js can apply them before
 // the first paint (chrome.storage is asynchronous and arrives too late)
 function cacheUi(key, value) {
   try {
@@ -183,22 +198,19 @@ function updateSetting(key, value) {
 
 document.addEventListener('DOMContentLoaded', () => {
   showRandomAd();
-  const tpFilter = document.getElementById('tp-filter');
-  if (tpFilter) {
-    tpFilter.addEventListener('click', () => {
-      thirdPartyOnly = !thirdPartyOnly;
-      tpFilter.setAttribute('aria-pressed', String(thirdPartyOnly));
-      if (lastRenderedData) renderData(lastRenderedData);
-    });
-  }
-
+  document.getElementById('th-tp').addEventListener('click', () => {
+    thirdPartyOnly = !thirdPartyOnly;
+    updateResourceHeaders();
+    if (lastRenderedData) renderData(lastRenderedData);
+  });
+  updateResourceHeaders();
+  document.getElementById('resources-section').addEventListener('scroll', updateResourcesScrollCue);
   const mainView = document.getElementById('main-view');
   const settingsView = document.getElementById('settings-view');
   const settingsBtn = document.getElementById('settings-btn');
   const settingsBack = document.getElementById('settings-back');
   const badgeToggle = document.getElementById('badge-toggle');
   const themeSelect = document.getElementById('theme-select');
-  const densitySelect = document.getElementById('density-select');
   const timelineToggle = document.getElementById('timeline-toggle');
   const resourcesToggle = document.getElementById('resources-toggle');
   const summaryToggle = document.getElementById('summary-toggle');
@@ -219,16 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
     cacheUi('theme', THEME_OPTIONS.includes(theme) ? theme : 'auto');
   }
 
-  function applyDensity(density) {
-    document.body.classList.remove('density-roomy', 'density-default', 'density-compact');
-    if (DENSITY_OPTIONS.includes(density)) {
-      document.body.classList.add('density-' + density);
-    } else {
-      document.body.classList.add('density-default');
-    }
-    cacheUi('density', DENSITY_OPTIONS.includes(density) ? density : 'default');
-  }
-
   // Nothing to measure: replace the empty cards and tables with one clear message
   function showStatus(text) {
     showEmptyState();
@@ -244,9 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const theme = THEME_OPTIONS.includes(settings.theme) ? settings.theme : 'auto';
     themeSelect.value = theme;
     applyTheme(theme);
-    const density = DENSITY_OPTIONS.includes(settings.density) ? settings.density : 'default';
-    densitySelect.value = density;
-    applyDensity(density);
     summaryToggle.checked = settings.showSummary !== false;
     summarySection.classList.toggle('section-hidden', settings.showSummary === false);
     timelineToggle.checked = settings.showTimeline !== false;
@@ -265,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   settingsBack.addEventListener('click', () => {
     settingsView.classList.add('view-hidden');
     mainView.classList.remove('view-hidden');
+    updateResourcesScroll();
   });
 
   // Badge toggle handler
@@ -289,13 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const theme = themeSelect.value;
     applyTheme(theme);
     updateSetting('theme', theme);
-  });
-
-  // Density selector handler
-  densitySelect.addEventListener('change', () => {
-    const density = densitySelect.value;
-    applyDensity(density);
-    updateSetting('density', density);
   });
 
   // Section toggle helper
@@ -414,9 +407,9 @@ function dataSignature(data) {
 
 // --- Render ---
 
-// "84 requests · 2.1 MB · 38% third-party" under the metric cards
+// "84 requests · 38% third-party · 2.1 MB" in the footer of the resources table
 function renderSummary(summary) {
-  const el = document.getElementById('summary-section');
+  const el = document.getElementById('summary-cell');
   el.textContent = '';
   const ok = summary && Number.isFinite(summary.requests) && summary.requests > 0 &&
     Number.isFinite(summary.bytes) && Number.isFinite(summary.thirdParty);
@@ -429,17 +422,73 @@ function renderSummary(summary) {
     return span;
   };
   const share = Math.round((summary.thirdParty / summary.requests) * 100);
-  el.append(
+  const row = document.createElement('div');
+  row.className = 'summary-flex';
+  row.append(
     part(summary.requests.toLocaleString(), summary.requests === 1 ? ' request' : ' requests'),
-    part(summary.bytes > 0 ? formatBytes(summary.bytes) : 'n/a', ''),
-    part(share + '%', ' third-party')
+    part(share + '%', ' third-party'),
+    part(summary.bytes > 0 ? formatBytes(summary.bytes) : 'n/a', '')
   );
+  el.appendChild(row);
   el.title = 'Size counts only responses the browser exposes. Third-party share is by request count.';
 }
 
 // Session-only filter for the Slowest Resources table
 let thirdPartyOnly = false;
 let lastRenderedData = null;
+
+function updateResourceHeaders() {
+  document.getElementById('th-tp').setAttribute('aria-pressed', String(thirdPartyOnly));
+}
+
+// A long name keeps its start and its end (the extension is the useful part),
+// with the ellipsis in the middle. The full name stays in the tooltip.
+function fitResourceName(span) {
+  if (!span || !span.dataset.full) return;
+  const full = span.dataset.full;
+  // Exact (fractional) text width: scrollWidth rounds, and a sub-pixel overflow
+  // would still trigger the CSS ellipsis
+  const fits = () => {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    return range.getBoundingClientRect().width <= span.clientWidth - 1;
+  };
+  span.textContent = full;
+  if (fits()) return;
+  const ext = (full.match(/\.[A-Za-z0-9]{1,5}$/) || [''])[0];
+  const tailLen = ext ? ext.length + 3 : 6;
+  const tail = full.slice(-tailLen);
+  let lo = 0;
+  let hi = full.length - tailLen;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    span.textContent = full.slice(0, mid) + '\u2026' + tail;
+    if (fits()) lo = mid; else hi = mid - 1;
+  }
+  span.textContent = full.slice(0, lo) + '\u2026' + tail;
+}
+
+// The resources table shows VISIBLE_RESOURCE_ROWS rows and scrolls inside its own box
+// (header and footer stay put). The height is measured, so it follows the row height.
+function updateResourcesScroll() {
+  const box = document.getElementById('resources-section');
+  const rows = box.querySelectorAll('#resources-body tr');
+  if (!rows.length || !rows[0].offsetHeight) return; // hidden or empty: nothing to measure
+  rows.forEach((row) => fitResourceName(row.querySelector('.resource-name')));
+  const head = box.querySelector('thead').offsetHeight;
+  const foot = box.querySelector('tfoot').offsetHeight;
+  let body = 0;
+  for (let i = 0; i < Math.min(VISIBLE_RESOURCE_ROWS, rows.length); i++) body += rows[i].offsetHeight;
+  box.style.maxHeight = (head + body + foot) + 'px';
+  updateResourcesScrollCue();
+}
+
+// Soft shadow above the footer while there are rows left below
+function updateResourcesScrollCue() {
+  const box = document.getElementById('resources-section');
+  const more = box.scrollHeight - box.clientHeight - box.scrollTop > 2;
+  box.classList.toggle('has-more', more);
+}
 
 function renderData(data) {
   lastRenderedData = data;
@@ -531,7 +580,7 @@ function renderData(data) {
       if (thirdPartyOnly && topResources.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 3;
+        td.colSpan = 4;
         td.className = 'resources-empty';
         td.textContent = 'No third-party resources among the slowest.';
         tr.appendChild(td);
@@ -541,9 +590,6 @@ function renderData(data) {
       topResources.forEach(resource => {
         const isSlow = resource.duration > SLOW_RESOURCE_THRESHOLD_MS;
         const resourceName = typeof resource.name === 'string' ? resource.name : String(resource.name || 'unknown');
-        const displayName = resourceName.length > RESOURCE_NAME_MAX_LENGTH
-          ? resourceName.substring(0, RESOURCE_NAME_MAX_LENGTH) + '...'
-          : resourceName;
 
         // Validate badge class against allowlist
         const badgeClass = BADGE_CLASS_ALLOWLIST.has(resource.badgeClass) ? resource.badgeClass : 'other';
@@ -551,9 +597,7 @@ function renderData(data) {
         const tr = document.createElement('tr');
         let thirdPartyNote = '';
         if (resource.thirdParty === true) {
-          tr.className = 'third-party-row';
           try { thirdPartyNote = 'Third-party: ' + new URL(resource.url).hostname; } catch (e) { thirdPartyNote = 'Third-party'; }
-          tr.title = thirdPartyNote;
         }
 
         const tdResource = document.createElement('td');
@@ -567,10 +611,20 @@ function renderData(data) {
         const nameSpan = document.createElement('span');
         nameSpan.className = 'resource-name';
         nameSpan.title = thirdPartyNote ? resourceName + '\n' + thirdPartyNote : resourceName;
-        nameSpan.textContent = displayName;
+        nameSpan.dataset.full = resourceName;
+        nameSpan.textContent = resourceName;
 
         resourceRow.append(badgeSpan, nameSpan);
         tdResource.appendChild(resourceRow);
+
+        const tdParty = document.createElement('td');
+        tdParty.className = 'resource-party';
+        if (thirdPartyNote) {
+          const dot = document.createElement('span');
+          dot.className = 'tp-dot';
+          dot.title = thirdPartyNote;
+          tdParty.appendChild(dot);
+        }
 
         const tdSize = document.createElement('td');
         tdSize.className = 'resource-size';
@@ -589,9 +643,11 @@ function renderData(data) {
         tdTime.className = 'resource-time' + (isSlow ? ' slow-time' : '');
         tdTime.textContent = formatNumber(resource.duration);
 
-        tr.append(tdResource, tdSize, tdTime);
+        tr.append(tdResource, tdParty, tdSize, tdTime);
         resourcesBody.appendChild(tr);
       });
+
+      updateResourcesScroll();
     }
   } catch (error) {
     console.error('Error displaying performance data:', error);

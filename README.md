@@ -14,7 +14,6 @@ A lightweight Chrome extension that measures and displays page load performance 
 - **Slow Resources** — Top 10 slowest resources with type badges (JS, CSS, IMG, XHR, FONT, OTHER) and size. Third-party resources get a blue stripe on the left, and the **3rd party** button shows only those — italic sizes were served from the browser cache (hover for details); `n/a` means the server does not expose the size (cross-origin without `Timing-Allow-Origin`)
 - **Badge Indicator** — Color-coded load time on the extension icon (green ≤1s, orange ≤3s, red >3s)
 - **Themes** — Auto (follows OS), Light, and Dark
-- **Density** — Roomy, Default, and Compact layouts
 - **Ignored Domains** — List sites (one per line, subdomains included) where nothing is measured and no badge is shown; after removing a site from the list, reload its page to resume measuring
 - **Settings Persistence** — All preferences saved in `chrome.storage.local`
 
@@ -45,7 +44,7 @@ This is the **main and recommended** way to install the extension.
 
 1. Navigate to any website
 2. Click the extension icon to view performance metrics
-3. Use the ⚙ button to customize theme, density, and visible sections
+3. Use the ⚙ button to customize theme and visible sections
 
 If metrics show `--`, reload the page and reopen the popup.
 
@@ -80,7 +79,7 @@ page-load-timer/
 ├── content.js             # Content script (auto-collects on page load)
 ├── collect.js             # On-demand collector (injected for pre-loaded tabs)
 ├── background.js          # Service worker
-├── early.js               # Applies theme and density before the first paint
+├── early.js               # Applies the theme before the first paint
 ├── popup.html             # Popup UI and styles
 ├── popup.js               # Popup logic
 ├── package.sh             # Builds the Web Store zip (runtime files only)

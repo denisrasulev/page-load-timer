@@ -48,7 +48,7 @@
   const RE_IMAGE   = /\.(png|jpe?g|gif|svg|webp|avif|ico|bmp)(\?.*)?$/i;
 
   // Must be >= TOP_RESOURCES_COUNT in popup.js
-  const MAX_RESOURCES_PER_TYPE = 10;
+  const MAX_RESOURCES_PER_TYPE = 20;
 
   // Registrable domain without a public-suffix list: the last two labels, or
   // the last three when the second-level label is a short generic one

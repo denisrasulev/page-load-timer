@@ -11,7 +11,7 @@
             --surface-color: #ffffff;
             --surface-hover: #eef0f3;
             --text-primary: #1f2937;
-            --text-secondary: #6b7280;
+            --text-secondary: #5b6472;
             --border-color: #e5e7eb;
             --accent-blue: #3b82f6;
             --accent-green: #10b981;
@@ -21,11 +21,11 @@
             --toggle-bg: #d1d5db;
             --toggle-knob: #ffffff;
             --shadow: rgba(0,0,0,0.05);
-            --badge-js-bg: #eff6ff;     --badge-js-fg: #3b82f6;
-            --badge-css-bg: #fdf2f8;    --badge-css-fg: #db2777;
-            --badge-img-bg: #ecfdf5;    --badge-img-fg: #059669;
-            --badge-xhr-bg: #fef3c7;    --badge-xhr-fg: #d97706;
-            --badge-font-bg: #ede9fe;   --badge-font-fg: #7c3aed;
+            --badge-js-bg: #eff6ff;     --badge-js-fg: #1d4ed8;
+            --badge-css-bg: #fdf2f8;    --badge-css-fg: #be185d;
+            --badge-img-bg: #ecfdf5;    --badge-img-fg: #047857;
+            --badge-xhr-bg: #fef3c7;    --badge-xhr-fg: #b45309;
+            --badge-font-bg: #ede9fe;   --badge-font-fg: #6d28d9;
             --badge-other-bg: #f3f4f6;  --badge-other-fg: #4b5563;
             --text-good: #047857;
             --text-warn: #b45309;
@@ -98,7 +98,7 @@
         }
 
         body {
-            width: 450px;
+            width: 470px;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -107,12 +107,12 @@
         }
 
         .container {
-            padding: 14px 20px 16px;
+            padding: 8px 20px 10px;
         }
 
         /* Header */
         header {
-            margin-bottom: 16px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -238,31 +238,9 @@
         /* Metrics Grid */
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .summary-line {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            margin: -4px 0 16px;
-            padding: 8px 12px;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .summary-line:empty {
-            display: none;
-        }
-
-        .summary-line b {
-            color: var(--text-primary);
-            font-weight: 600;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 8px;
         }
 
         .metric-card {
@@ -280,6 +258,12 @@
             letter-spacing: 0.5px;
             color: var(--text-secondary);
             margin-bottom: 4px;
+        }
+
+        .label-unit {
+            text-transform: none;
+            letter-spacing: 0;
+            font-weight: 400;
         }
 
         .metric-value {
@@ -325,7 +309,7 @@
 
         th {
             text-align: left;
-            padding: 7px 16px;
+            padding: 6px 16px;
             background-color: var(--surface-hover);
             color: var(--text-secondary);
             font-weight: 700;
@@ -335,7 +319,7 @@
         }
 
         td {
-            padding: 6px 16px;
+            padding: 5px 16px;
             border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
         }
@@ -366,10 +350,30 @@
             table-layout: fixed;
         }
 
+        /* Both tables share one column grid (see the colgroups) so the right edges
+           of Start/3P, End/Size and Time line up from the top table to the bottom */
+        .timeline-table {
+            table-layout: fixed;
+        }
+
+        .timeline-table th {
+            white-space: nowrap;
+        }
+
         #main-view .resources-table th:not(:first-child),
-        #main-view .resources-table td:not(:first-child) {
-            padding-left: 8px;
-            padding-right: 12px;
+        #main-view .resources-table td:not(:first-child),
+        #main-view .timeline-table th:not(:first-child),
+        #main-view .timeline-table td:not(:first-child) {
+            padding-left: 6px;
+            padding-right: 10px;
+        }
+
+        /* Same gap to the table edge on the left as on the right */
+        #main-view .resources-table th:first-child,
+        #main-view .resources-table td:first-child,
+        #main-view .timeline-table th:first-child,
+        #main-view .timeline-table td:first-child {
+            padding-left: 10px;
         }
 
         .resources-table .resource-row {
@@ -402,7 +406,7 @@
         }
 
         .slow-time {
-            color: var(--danger);
+            color: var(--text-poor);
             font-weight: 600;
         }
 
@@ -427,37 +431,102 @@
         .badge.font { background-color: var(--badge-font-bg); color: var(--badge-font-fg); }
         .badge.other { background-color: var(--badge-other-bg); color: var(--badge-other-fg); }
 
-        /* Third-party rows: a stripe on the left edge, no width taken from the name */
-        .resources-table tr.third-party-row td:first-child {
-            box-shadow: inset 3px 0 0 var(--accent-blue);
-        }
-
-        .tp-filter {
-            float: right;
+        /* Resources table: sortable headers and the third-party column */
+        .th-btn {
+            position: relative;
             font: inherit;
-            font-size: 10px;
-            text-transform: none;
-            letter-spacing: 0;
-            color: var(--text-secondary);
+            text-transform: inherit;
+            letter-spacing: inherit;
+            color: inherit;
             background: transparent;
-            border: 1px solid var(--border-color);
-            border-left: 3px solid var(--accent-blue);
-            border-radius: 3px;
-            padding: 0 8px 0 6px;
+            border: none;
+            padding: 0;
             cursor: pointer;
         }
 
-        .tp-filter:hover {
-            background: var(--bg-color);
+        .th-btn:hover {
             color: var(--text-primary);
-            border-color: var(--text-secondary);
-            border-left-color: var(--accent-blue);
         }
 
-        .tp-filter[aria-pressed="true"] {
+        .th-btn[aria-pressed="true"] {
             color: var(--accent-text);
-            border-color: var(--accent-blue);
             background: var(--accent-bg);
+            border-radius: 4px;
+            padding: 0 4px;
+        }
+
+        #main-view .resources-table .th-party,
+        #main-view .resources-table .resource-party {
+            text-align: right;
+        }
+
+        .tp-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            margin-right: 4px; /* centers the dot under the 3P label */
+        }
+
+        .summary-foot td {
+            background-color: var(--surface-hover);
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: left;
+        }
+
+        #main-view .resources-table .summary-foot td {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .summary-foot td:empty {
+            display: none;
+        }
+
+        .summary-foot b {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .summary-flex {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        #resources-section {
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        #resources-section::-webkit-scrollbar {
+            display: none;
+        }
+
+        #resources-section thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        #resources-section tfoot td {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+        }
+
+        /* Cue that more rows are hidden below the last visible one */
+        #resources-section.has-more tfoot td {
+            box-shadow: 0 -8px 8px -8px rgba(0, 0, 0, 0.35);
+        }
+
+        #main-view .resources-table th:first-child {
+            padding-right: 4px;
+            white-space: nowrap;
         }
 
         .resources-empty {
@@ -504,12 +573,15 @@
 
         .timeline-zero td,
         .timeline-zero td:last-child {
-            color: var(--text-muted, var(--text-secondary));
+            color: var(--text-secondary);
             font-weight: 400;
-            opacity: 0.6;
         }
 
         /* Slowest phase: neutral accent, not an alarm color */
+        .timeline-table .timeline-slowest td {
+            color: var(--accent-text);
+        }
+
         .timeline-slowest td,
         .timeline-slowest td:last-child {
             background-color: var(--accent-bg);
@@ -517,94 +589,50 @@
             font-weight: 600;
         }
 
-        .section-gap {
-            margin-bottom: 16px;
+                .section-gap {
+            margin-bottom: 8px;
         }
 
-        /* Density: roomy — scoped to main view only */
-        body.density-roomy #main-view {
-            padding: 4px;
-        }
-
-        body.density-roomy #main-view header {
-            margin-bottom: 20px;
-        }
-
-        body.density-roomy #main-view .metrics-grid {
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        body.density-roomy #main-view .metric-card {
-            padding: 12px 4px;
-        }
-
-        body.density-roomy #main-view .metric-value {
-            font-size: 14px;
-        }
-
-        body.density-roomy #main-view th {
-            padding: 10px 16px;
-        }
-
-        body.density-roomy #main-view td {
-            padding: 10px 16px;
-        }
-
-        body.density-roomy #main-view .section-gap {
-            margin-bottom: 20px;
-        }
-
-        body.density-roomy .container {
-            padding-bottom: 20px;
-        }
-
-        body.density-roomy .settings-item {
-            padding: 18px 0;
-        }
-
-        /* Density: default — base styles, no overrides needed */
-
-        /* Density: compact — scoped to main view only */
-        body.density-compact #main-view header {
+        /* Compact layout (the only one): the popup must fit Chrome's 600px height limit */
+        #main-view header {
             margin-bottom: 10px;
         }
 
-        body.density-compact #main-view .metrics-grid {
-            gap: 6px;
+        #main-view .metrics-grid {
+            gap: 5px;
             margin-bottom: 10px;
         }
 
-        body.density-compact #main-view .metric-card {
-            padding: 6px 3px;
+        #main-view .metric-card {
+            padding: 6px 2px 7px;
+            min-width: 0;
         }
 
-        body.density-compact #main-view .metric-label {
-            font-size: 9px;
+        #main-view .metric-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0;
             margin-bottom: 2px;
+            white-space: nowrap;
         }
 
-        body.density-compact #main-view .metric-value {
-            font-size: 12px;
+        #main-view .metric-value {
+            font-size: 18px;
         }
 
-        body.density-compact #main-view th {
+        #main-view th {
             padding: 4px 12px;
         }
 
-        body.density-compact #main-view td {
+        #main-view td {
             padding: 3px 12px;
         }
 
-        body.density-compact #main-view .section-gap {
+        #main-view .section-gap {
             margin-bottom: 10px;
         }
 
-        body.density-compact .container {
-            padding-bottom: 10px;
-        }
-
-        body.density-compact .settings-item {
+        .settings-item {
             padding: 10px 0;
         }
 
@@ -620,7 +648,7 @@
             display: flex;
             align-items: baseline;
             gap: 8px;
-            padding: 10px 20px 12px;
+            padding: 7px 20px 9px;
             border-top: 1px solid var(--border-color);
             background-color: var(--bg-page);
             font-size: 11px;
@@ -666,8 +694,6 @@
             align-self: center;
         }
 
-        body.density-compact .ad-bar { padding: 7px 20px 9px; }
-        body.density-roomy .ad-bar { padding: 14px 20px 16px; }
 
         /* Settings: full-width item (label above, control below) */
         .settings-item.stacked {
@@ -706,19 +732,16 @@
            restricted page, no data yet) */
         .status-note {
             text-align: center;
-            padding: 28px 12px 32px;
+            padding: 18px 12px 22px;
             font-size: 14px;
             font-weight: 600;
             line-height: 1.4;
             color: var(--text-primary);
         }
 
-        body.density-compact .status-note { padding: 18px 12px 22px; }
-        body.density-roomy .status-note { padding: 36px 12px 40px; }
 
         /* With a status message there is nothing to show in the cards and tables */
         #main-view.has-status .metrics-grid,
-        #main-view.has-status .summary-line,
         #main-view.has-status .table-container {
             display: none;
         }
@@ -749,38 +772,41 @@
 
         <!-- Top Metrics Cards -->
         <div id="vitals-section" class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-label">Page Load</div>
+            <div class="metric-card" role="group" title="Page load time. Time until the page finished loading, including images and styles. Good: under 1 s. Poor: over 3 s.">
+                <div class="metric-label" data-label="Load" data-timed>Load <span class="label-unit">(ms)</span></div>
                 <div class="metric-value" id="load-time">--</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-label">FCP</div>
+            <div class="metric-card" role="group" title="First Contentful Paint. Time until the first text or image appears. Good: under 1.8 s. Poor: over 3 s.">
+                <div class="metric-label" data-label="FCP" data-timed>FCP <span class="label-unit">(ms)</span></div>
                 <div class="metric-value" id="fcp-time">--</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-label">LCP</div>
+            <div class="metric-card" role="group" title="Largest Contentful Paint. Time until the biggest visible element (image or text block) appears. Good: under 2.5 s. Poor: over 4 s.">
+                <div class="metric-label" data-label="LCP" data-timed>LCP <span class="label-unit">(ms)</span></div>
                 <div class="metric-value" id="lcp-time">--</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-label">TTFB</div>
+            <div class="metric-card" role="group" title="Time To First Byte. Time until the server starts to answer. Good: under 0.8 s. Poor: over 1.8 s.">
+                <div class="metric-label" data-label="TTFB" data-timed>TTFB <span class="label-unit">(ms)</span></div>
                 <div class="metric-value" id="ttfb-time">--</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-label">DCL</div>
+            <div class="metric-card" role="group" title="DOMContentLoaded. Time until the page structure is ready, before images and styles finish. Good: under 1 s. Poor: over 3 s.">
+                <div class="metric-label" data-label="DCL" data-timed>DCL <span class="label-unit">(ms)</span></div>
                 <div class="metric-value" id="dcl-time">--</div>
             </div>
-            <div class="metric-card">
+            <div class="metric-card" role="group" title="Cumulative Layout Shift. How much the page layout jumps while it loads. It has no unit. Good: under 0.1. Poor: over 0.25.">
                 <div class="metric-label">CLS</div>
                 <div class="metric-value" id="cls-time">--</div>
             </div>
         </div>
 
-        <!-- Page summary -->
-        <div id="summary-section" class="summary-line"></div>
-
         <!-- Load Timeline -->
         <div id="timeline-section" class="table-container section-gap">
             <table class="timeline-table">
+                <colgroup>
+                    <col>
+                    <col style="width: 80px">
+                    <col style="width: 80px">
+                    <col style="width: 80px">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Load Timeline</th>
@@ -799,18 +825,23 @@
             <table class="resources-table">
                 <colgroup>
                     <col>
-                    <col style="width: 84px">
-                    <col style="width: 84px">
+                    <col style="width: 80px">
+                    <col style="width: 80px">
+                    <col style="width: 80px">
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Slowest Resources <button type="button" id="tp-filter" class="tp-filter" aria-pressed="false" title="Show only resources from other domains">3rd party</button></th>
+                        <th>Slowest Resources</th>
+                        <th class="th-party"><button type="button" id="th-tp" class="th-btn" aria-pressed="false" title="Show only third-party resources">3P</button></th>
                         <th class="th-right">Size</th>
                         <th class="th-right">Time <span class="unit">(ms)</span></th>
                     </tr>
                 </thead>
                 <tbody id="resources-body">
                 </tbody>
+                <tfoot id="summary-section">
+                    <tr class="summary-foot"><td id="summary-cell" colspan="4"></td></tr>
+                </tfoot>
             </table>
         </div>
         </div>
@@ -829,14 +860,6 @@
                     <option value="auto" selected>Auto</option>
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
-                </select>
-            </li>
-            <li class="settings-item">
-                <div class="settings-label">Choose information density</div>
-                <select id="density-select" class="settings-select">
-                    <option value="roomy">Roomy</option>
-                    <option value="default" selected>Default</option>
-                    <option value="compact">Compact</option>
                 </select>
             </li>
             <li class="settings-item">
