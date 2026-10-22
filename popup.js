@@ -501,6 +501,13 @@ function renderData(data) {
         nameSpan.textContent = displayName;
 
         resourceRow.append(badgeSpan, nameSpan);
+        if (resource.thirdParty === true) {
+          const tpSpan = document.createElement('span');
+          tpSpan.className = 'third-party';
+          tpSpan.title = 'Loaded from another domain';
+          tpSpan.textContent = '3P';
+          resourceRow.appendChild(tpSpan);
+        }
         tdResource.appendChild(resourceRow);
 
         const tdSize = document.createElement('td');

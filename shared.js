@@ -50,7 +50,29 @@
   // Must be >= TOP_RESOURCES_COUNT in popup.js
   const MAX_RESOURCES_PER_TYPE = 10;
 
+  // Registrable domain without a public-suffix list: the last two labels, or
+  // the last three when the second-level label is a short generic one
+  // (example.co.uk). Good enough to tell a site's own subdomains from others.
+  function registrableDomain(host) {
+    const labels = String(host || '').toLowerCase().split('.');
+    if (labels.length <= 2) return labels.join('.');
+    const sld = labels[labels.length - 2];
+    const take = sld.length <= 3 && labels[labels.length - 1].length === 2 ? 3 : 2;
+    return labels.slice(-take).join('.');
+  }
+
+  function isThirdParty(resourceUrl, pageHost) {
+    try {
+      const host = new URL(resourceUrl).hostname;
+      if (!host || !pageHost) return false;
+      return registrableDomain(host) !== registrableDomain(pageHost);
+    } catch {
+      return false; // data:, blob: and other non-http URLs
+    }
+  }
+
   function groupResources(resources) {
+    const pageHost = location.hostname;
     const grouped = {
       scripts: [],
       stylesheets: [],
@@ -73,7 +95,8 @@
         // transferSize 0 with a known body size = served from browser cache.
         // When both are 0 the size is hidden by CORS — cache state is unknown.
         cached: !resource.transferSize && (resource.encodedBodySize || 0) > 0,
-        startTime: Math.round(resource.startTime)
+        startTime: Math.round(resource.startTime),
+        thirdParty: isThirdParty(url, pageHost)
       };
 
       // Extension-based checks first (most reliable — initiatorType can miss dynamically loaded resources)
