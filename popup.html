@@ -407,7 +407,7 @@
 
         /* Third-party rows: a stripe on the left edge, no width taken from the name */
         .resources-table tr.third-party-row td:first-child {
-            box-shadow: inset 3px 0 0 var(--text-accent);
+            box-shadow: inset 3px 0 0 var(--accent-blue);
         }
 
         .tp-filter {
@@ -418,16 +418,16 @@
             letter-spacing: 0;
             color: var(--text-secondary);
             background: transparent;
-            border: 1px solid var(--border-strong);
+            border: 1px solid var(--border-color);
             border-radius: 999px;
             padding: 0 8px;
             cursor: pointer;
         }
 
         .tp-filter[aria-pressed="true"] {
-            color: var(--text-accent);
-            border-color: var(--text-accent);
-            background: var(--bg-accent);
+            color: var(--accent-text);
+            border-color: var(--accent-blue);
+            background: var(--accent-bg);
         }
 
         .resources-empty {
